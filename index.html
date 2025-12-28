@@ -238,6 +238,8 @@
         .image-preview { position: relative; }
         .image-preview .remove-btn { position: absolute; top: -8px; right: -8px; }
         .drag-over { border-color: #667eea !important; background-color: #f0f4ff !important; }
+        .icon-option.selected { border-color: #667eea; background: linear-gradient(135deg, #f0f4ff 0%, #e8e0ff 100%); }
+        .icon-option.selected i { color: #667eea; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -555,6 +557,9 @@
                     <button onclick="showAdminTab('products')" class="admin-tab px-6 py-3 rounded-xl font-semibold bg-white shadow transition-all">
                         <i class="fas fa-box ml-2"></i>المنتجات
                     </button>
+                    <button onclick="showAdminTab('categories')" class="admin-tab px-6 py-3 rounded-xl font-semibold bg-white shadow transition-all">
+                        <i class="fas fa-tags ml-2"></i>التصنيفات
+                    </button>
                 </div>
 
                 <!-- Orders Tab -->
@@ -642,6 +647,24 @@
                                 </thead>
                                 <tbody id="ordersTableBody" class="divide-y divide-gray-100"></tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Tab -->
+                <div id="categoriesTab" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-tags text-purple-600 ml-2"></i>إدارة التصنيفات
+                        </h3>
+                        <button onclick="openCategoryModal()" class="px-6 py-3 gradient-btn text-white rounded-xl font-semibold">
+                            <i class="fas fa-plus ml-2"></i>إضافة تصنيف جديد
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categoriesGrid">
+                            <!-- Categories will be rendered here -->
                         </div>
                     </div>
                 </div>
@@ -1098,6 +1121,100 @@
         </div>
     </div>
 
+    <!-- Category Modal -->
+    <div id="categoryModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white rounded-2xl max-w-md w-full slide-in">
+            <div class="gradient-bg p-4 flex items-center justify-between rounded-t-2xl">
+                <h3 id="categoryModalTitle" class="text-white font-bold text-lg"><i class="fas fa-plus ml-2"></i>إضافة تصنيف جديد</h3>
+                <button onclick="closeCategoryModal()" class="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="categoryForm" class="p-6 space-y-4">
+                <input type="hidden" id="editCategoryId">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">اسم التصنيف بالعربية *</label>
+                    <input type="text" id="categoryNameAr" placeholder="مثال: إلكترونيات" required
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">معرف التصنيف (بالإنجليزية) *</label>
+                    <input type="text" id="categoryId" placeholder="مثال: electronics" required dir="ltr"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-left">
+                    <p class="text-xs text-gray-500 mt-1">استخدم حروف إنجليزية صغيرة بدون مسافات</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">أيقونة التصنيف *</label>
+                    <div class="grid grid-cols-6 gap-2" id="iconSelector">
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-mobile-alt">
+                            <i class="fas fa-mobile-alt text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-tshirt">
+                            <i class="fas fa-tshirt text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-spa">
+                            <i class="fas fa-spa text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-home">
+                            <i class="fas fa-home text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-futbol">
+                            <i class="fas fa-futbol text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-baby">
+                            <i class="fas fa-baby text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-car">
+                            <i class="fas fa-car text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-book">
+                            <i class="fas fa-book text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-gamepad">
+                            <i class="fas fa-gamepad text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-gift">
+                            <i class="fas fa-gift text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-utensils">
+                            <i class="fas fa-utensils text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-tools">
+                            <i class="fas fa-tools text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-headphones">
+                            <i class="fas fa-headphones text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-camera">
+                            <i class="fas fa-camera text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-laptop">
+                            <i class="fas fa-laptop text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-shoe-prints">
+                            <i class="fas fa-shoe-prints text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-gem">
+                            <i class="fas fa-gem text-xl text-gray-600"></i>
+                        </button>
+                        <button type="button" class="icon-option p-3 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-all" data-icon="fa-couch">
+                            <i class="fas fa-couch text-xl text-gray-600"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="selectedIcon" value="">
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="submit" class="flex-1 py-3 gradient-btn text-white font-bold rounded-xl">
+                        <i class="fas fa-save ml-2"></i>حفظ التصنيف
+                    </button>
+                    <button type="button" onclick="closeCategoryModal()" class="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- WhatsApp Float Button -->
     <a id="whatsappBtn" href="#" target="_blank" 
         class="fixed bottom-6 left-6 z-40 w-14 h-14 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-all hover:scale-110">
@@ -1201,10 +1318,10 @@
 
         // ==================== بيانات الولايات ====================
         const algeriaData = {
-            1: { name: "أدرار", office: 900, home: 1300 },
-            2: { name: "الشلف", office: 250, home: 650 },
-            3: { name: "الأغواط", office: 500, home: 800 },
-            4: { name: "أم البواقي", office: 300, home: 650 },
+            1: { name: "أدرار", office: 900, home: 1200 },
+            2: { name: "الشلف", office: 600, home: 900 },
+            3: { name: "الأغواط", office: 800, home: 1100 },
+            4: { name: "أم البواقي", office: 700, home: 1000 },
             5: { name: "باتنة", office: 700, home: 1000 },
             6: { name: "بجاية", office: 600, home: 900 },
             7: { name: "بسكرة", office: 750, home: 1050 },
@@ -1261,8 +1378,17 @@
             58: { name: "المنيعة", office: 850, home: 1150 }
         };
 
+        // ==================== التصنيفات الافتراضية ====================
+        const defaultCategories = [
+            { id: 'electronics', name: 'إلكترونيات', icon: 'fa-mobile-alt' },
+            { id: 'fashion', name: 'ملابس', icon: 'fa-tshirt' },
+            { id: 'beauty', name: 'جمال', icon: 'fa-spa' },
+            { id: 'home', name: 'المنزل', icon: 'fa-home' }
+        ];
+
         // ==================== المتغيرات العامة ====================
         let products = JSON.parse(localStorage.getItem('storeProducts')) || [...defaultProducts];
+        let categories = JSON.parse(localStorage.getItem('storeCategories')) || [...defaultCategories];
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         let orders = JSON.parse(localStorage.getItem('orders')) || [];
         let settings = JSON.parse(localStorage.getItem('storeSettings')) || CONFIG;
@@ -1270,6 +1396,7 @@
         let currentProduct = null;
         let productQuantity = 1;
         let uploadedImages = [];
+        let selectedCategoryIcon = '';
 
         // ==================== دوال الأمان ====================
         function sanitizeInput(input) {
@@ -1361,10 +1488,11 @@
 
             productQuantity = 1;
             const discount = Math.round((1 - currentProduct.price / currentProduct.oldPrice) * 100);
-            const categoryNames = { electronics: 'إلكترونيات', fashion: 'ملابس', beauty: 'جمال', home: 'المنزل' };
+            const category = categories.find(c => c.id === currentProduct.category);
+            const categoryName = category ? category.name : currentProduct.category;
 
             document.getElementById('productBreadcrumb').textContent = currentProduct.name;
-            document.getElementById('productCategory').textContent = categoryNames[currentProduct.category] || currentProduct.category;
+            document.getElementById('productCategory').textContent = categoryName;
             document.getElementById('mainProductImage').src = currentProduct.images[0];
             document.getElementById('productBadge').textContent = currentProduct.badge || '';
             document.getElementById('productBadge').style.display = currentProduct.badge ? 'block' : 'none';
@@ -1743,7 +1871,169 @@
             event.target.classList.add('active');
             document.getElementById('ordersTab').classList.toggle('hidden', tab !== 'orders');
             document.getElementById('productsTab').classList.toggle('hidden', tab !== 'products');
+            document.getElementById('categoriesTab').classList.toggle('hidden', tab !== 'categories');
             if (tab === 'products') renderAdminProducts();
+            if (tab === 'categories') renderCategories();
+        }
+
+        // ==================== إدارة التصنيفات ====================
+        function saveCategories() {
+            localStorage.setItem('storeCategories', JSON.stringify(categories));
+        }
+
+        function renderCategories() {
+            const grid = document.getElementById('categoriesGrid');
+            grid.innerHTML = categories.map(cat => `
+                <div class="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                            <i class="fas ${cat.icon} text-xl text-purple-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">${cat.name}</h4>
+                            <p class="text-sm text-gray-500">${cat.id}</p>
+                            <p class="text-xs text-gray-400">${products.filter(p => p.category === cat.id).length} منتج</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editCategory('${cat.id}')" class="p-2 text-blue-500 hover:bg-blue-100 rounded-lg">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteCategory('${cat.id}')" class="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('hidden');
+            document.getElementById('categoryForm').reset();
+            document.getElementById('editCategoryId').value = '';
+            document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-plus ml-2"></i>إضافة تصنيف جديد';
+            selectedCategoryIcon = '';
+            document.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+        }
+
+        function editCategory(categoryId) {
+            const category = categories.find(c => c.id === categoryId);
+            if (!category) return;
+
+            openCategoryModal();
+            document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-edit ml-2"></i>تعديل التصنيف';
+            document.getElementById('editCategoryId').value = category.id;
+            document.getElementById('categoryNameAr').value = category.name;
+            document.getElementById('categoryId').value = category.id;
+            document.getElementById('categoryId').disabled = true; // لا يمكن تغيير المعرف
+            
+            // Select the icon
+            selectedCategoryIcon = category.icon;
+            document.querySelectorAll('.icon-option').forEach(opt => {
+                if (opt.dataset.icon === category.icon) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        function deleteCategory(categoryId) {
+            const productsInCategory = products.filter(p => p.category === categoryId).length;
+            if (productsInCategory > 0) {
+                showNotification(`لا يمكن حذف التصنيف لأنه يحتوي على ${productsInCategory} منتج`, 'error');
+                return;
+            }
+            if (confirm('هل أنت متأكد من حذف هذا التصنيف؟')) {
+                categories = categories.filter(c => c.id !== categoryId);
+                saveCategories();
+                renderCategories();
+                renderCategoryButtons();
+                updateProductCategoryOptions();
+                showNotification('تم حذف التصنيف', 'success');
+            }
+        }
+
+        // Icon selector event listeners
+        document.querySelectorAll('.icon-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedCategoryIcon = this.dataset.icon;
+            });
+        });
+
+        // Category form submit
+        document.getElementById('categoryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const editId = document.getElementById('editCategoryId').value;
+            const nameAr = document.getElementById('categoryNameAr').value.trim();
+            const id = document.getElementById('categoryId').value.trim().toLowerCase().replace(/\s+/g, '-');
+            
+            if (!selectedCategoryIcon) {
+                showNotification('اختر أيقونة للتصنيف', 'error');
+                return;
+            }
+
+            if (editId) {
+                // Update existing category
+                const index = categories.findIndex(c => c.id === editId);
+                if (index !== -1) {
+                    categories[index] = { ...categories[index], name: nameAr, icon: selectedCategoryIcon };
+                    showNotification('تم تحديث التصنيف', 'success');
+                }
+            } else {
+                // Check if ID already exists
+                if (categories.find(c => c.id === id)) {
+                    showNotification('معرف التصنيف موجود مسبقاً', 'error');
+                    return;
+                }
+                // Add new category
+                categories.push({ id, name: nameAr, icon: selectedCategoryIcon });
+                showNotification('تم إضافة التصنيف', 'success');
+            }
+
+            saveCategories();
+            closeCategoryModal();
+            renderCategories();
+            renderCategoryButtons();
+            updateProductCategoryOptions();
+            document.getElementById('categoryId').disabled = false;
+        });
+
+        function renderCategoryButtons() {
+            const container = document.querySelector('.category-btn').parentElement;
+            container.innerHTML = `
+                <button class="category-btn active flex-shrink-0 px-5 py-2 rounded-full border-2 border-purple-500 font-semibold transition-all" data-category="all">
+                    <i class="fas fa-th-large ml-2"></i>الكل
+                </button>
+                ${categories.map(cat => `
+                    <button class="category-btn flex-shrink-0 px-5 py-2 rounded-full border-2 border-gray-200 font-semibold transition-all hover:border-purple-500" data-category="${cat.id}">
+                        <i class="fas ${cat.icon} ml-2"></i>${cat.name}
+                    </button>
+                `).join('')}
+            `;
+            
+            // Re-attach event listeners
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    renderProducts(this.dataset.category);
+                });
+            });
+        }
+
+        function updateProductCategoryOptions() {
+            const select = document.getElementById('productCategoryInput');
+            select.innerHTML = `
+                <option value="">-- اختر التصنيف --</option>
+                ${categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
+            `;
         }
 
         function loadAdminData() {
@@ -2190,14 +2480,6 @@
         }
 
         // ==================== التهيئة ====================
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                renderProducts(this.dataset.category);
-            });
-        });
-
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const query = e.target.value.toLowerCase();
             const filtered = products.filter(p => p.name.toLowerCase().includes(query));
@@ -2226,6 +2508,8 @@
         });
 
         // Initialize
+        renderCategoryButtons();
+        updateProductCategoryOptions();
         renderProducts();
         updateCartCount();
         updateWhatsAppButton();
