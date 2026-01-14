@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مولّد قالب Shopify + تطبيق COD</title>
+  <meta name="description" content="توليد قالب Shopify مشابه لتصميم متجرك + تطبيق COD عبر App Proxy بدون Supabase" />
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- JSZip (needed to generate ZIP downloads). Loaded without defer to ensure availability. -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .gradient-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .gradient-btn:hover { background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%); }
+    .card { box-shadow: 0 12px 28px rgba(0,0,0,.08); }
+    textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+  <header class="gradient-bg text-white">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold">مولّد قالب Shopify + تطبيق COD (بدون Supabase)</h1>
+          <p class="text-white/80 mt-1">يبني لك Theme ZIP + COD App ZIP يستقبل الطلبات عبر <b>Shopify App Proxy</b> ويُنشئ طلب داخل Shopify.</p>
+        </div>
+        <div class="flex flex-col items-start md:items-end gap-2">
+          <div class="flex gap-2">
+            <button id="downloadThemeBtn" class="px-5 py-3 rounded-xl font-extrabold bg-white text-purple-700 hover:bg-white/90">تنزيل Theme (ZIP)</button>
+            <button id="downloadAppBtn" class="px-5 py-3 rounded-xl font-extrabold bg-black/90 text-white hover:bg-black">تنزيل COD App (ZIP)</button>
+          </div>
+          <div id="zipReady" class="text-xs text-white/80">...</div>
+          <div id="downloadFallback" class="text-xs text-white/80 hidden"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+
+    <section class="bg-white rounded-2xl p-5 card">
+      <h2 class="text-xl font-extrabold text-gray-800 mb-3">1) إعدادات القالب (Theme)</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">اسم المتجر (داخل القالب)</label>
+          <input id="storeName" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none" value="متجري" />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">رقم واتساب (اختياري)</label>
+          <input id="whatsapp" dir="ltr" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-left" placeholder="213555123456" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Facebook Pixel ID (اختياري)</label>
+          <input id="fbPixel" dir="ltr" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-left" placeholder="123456789012345" />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">TikTok Pixel ID (اختياري)</label>
+          <input id="ttPixel" dir="ltr" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-left" placeholder="XXXXXXXXXX" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Google Analytics GA4 Measurement ID (اختياري)</label>
+          <input id="gaId" dir="ltr" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-left" placeholder="G-XXXXXXXXXX" />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">مسار App Proxy (ثابت داخل القالب)</label>
+          <input id="proxyPath" dir="ltr" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-left" value="/apps/cod-order" />
+          <p class="text-xs text-gray-500 mt-1">اتركه كما هو. ستضبط App Proxy في Shopify ليحوّل هذا المسار إلى سيرفرك.</p>
+        </div>
+      </div>
+
+      <div class="mt-4 p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-sm text-yellow-900">
+        <div class="font-extrabold mb-1">مهم:</div>
+        <ul class="list-disc mr-5 space-y-1">
+          <li>المنتجات/الصور/الأسعار ستُدار من <b>Shopify Admin</b> (لن نستخدم Supabase إطلاقاً).</li>
+          <li>نموذج COD في القالب يرسل الطلب إلى <b>App Proxy</b> (تطبيق Node.js) والذي يقوم بإنشاء الطلب داخل Shopify.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl p-5 card">
+      <h2 class="text-xl font-extrabold text-gray-800 mb-3">2) أسعار التوصيل (ولايات الجزائر)</h2>
+      <p class="text-sm text-gray-600 mb-3">يمكنك تعديل الأسعار هنا. سيتم تضمين هذه البيانات داخل القالب (Theme) لتظهر للزبون في نموذج COD.</p>
+
+      <textarea id="algeriaJson" class="w-full h-72 p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none" dir="ltr"></textarea>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button id="validateJsonBtn" class="px-4 py-2 rounded-xl font-bold bg-gray-900 text-white hover:bg-gray-950">تحقق من JSON</button>
+        <button id="resetJsonBtn" class="px-4 py-2 rounded-xl font-bold bg-gray-200 text-gray-800 hover:bg-gray-300">إرجاع الافتراضي</button>
+        <span id="jsonStatus" class="text-sm"></span>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl p-5 card">
+      <h2 class="text-xl font-extrabold text-gray-800 mb-3">3) خطوات التثبيت داخل Shopify (مختصر)</h2>
+      <ol class="list-decimal mr-6 space-y-2 text-gray-700">
+        <li>نزّل <b>Theme ZIP</b> من الزر بالأعلى وارفعه: Shopify Admin → Online Store → Themes → Add theme → Upload zip</li>
+        <li>نزّل <b>COD App ZIP</b> وانشره على Render/Railway/VPS.</li>
+        <li>أنشئ Custom App في Shopify (Apps → Develop apps) وخذ:
+          <ul class="list-disc mr-6 mt-1 space-y-1">
+            <li><b>Admin API access token</b> (سري) لإنشاء الطلبات</li>
+            <li><b>API secret key</b> (سري) للتحقق من توقيع App Proxy</li>
+          </ul>
+        </li>
+        <li>اضبط App Proxy داخل نفس التطبيق:
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mt-2 text-sm" dir="ltr">
+            <div><b>Subpath prefix</b>: apps</div>
+            <div><b>Subpath</b>: cod-order</div>
+            <div><b>Proxy URL</b>: https://YOUR-SERVER-DOMAIN.com/shopify/cod</div>
+          </div>
+        </li>
+        <li>ضع متغيرات البيئة في سيرفرك (داخل التطبيق):
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mt-2 text-sm" dir="ltr">
+            SHOPIFY_API_SECRET=...<br>
+            SHOPIFY_ACCESS_TOKEN=...<br>
+            SHOPIFY_SHOP=your-store.myshopify.com<br>
+          </div>
+        </li>
+        <li>اختبر: افتح منتج → اضغط “اشتري الآن (COD)” → أدخل البيانات → يجب أن يظهر Order داخل Shopify.</li>
+      </ol>
+    </section>
+
+    <section class="bg-white rounded-2xl p-5 card">
+      <h2 class="text-xl font-extrabold text-gray-800 mb-3">4) ملاحظات أمان مهمة</h2>
+      <ul class="list-disc mr-6 space-y-2 text-gray-700">
+        <li>لا تضع <b>Admin API token</b> داخل القالب/المتصفح. فقط في سيرفر تطبيق COD.</li>
+        <li>تطبيق COD يتحقق من توقيع Shopify App Proxy (signature) قبل قبول الطلب.</li>
+        <li>يمكنك لاحقاً إضافة حماية إضافية: rate limiting + captcha + logging.</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="py-10 text-center text-gray-500 text-sm">
+    © <span id="year"></span> — مولّد Shopify Theme + COD App
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Ensure JSZip is available (fallback loader)
+    function ensureJSZip() {
+      return new Promise((resolve, reject) => {
+        if (window.JSZip) return resolve(window.JSZip);
+        const existing = document.querySelector('script[data-jszip-fallback]');
+        if (existing) {
+          existing.addEventListener('load', () => resolve(window.JSZip));
+          existing.addEventListener('error', () => reject(new Error('Failed to load JSZip')));
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        s.async = true;
+        s.setAttribute('data-jszip-fallback', '1');
+        s.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('JSZip loaded but not available'));
+        s.onerror = () => reject(new Error('Failed to load JSZip'));
+        document.head.appendChild(s);
+      });
+    }
+
+    // Default Algeria shipping data
+    const DEFAULT_ALGERIA_DATA = {
+      1: { name: "أدرار", office: 900, home: 1200 },
+      2: { name: "الشلف", office: 250, home: 650 },
+      3: { name: "الأغواط", office: 500, home: 800 },
+      4: { name: "أم البواقي", office: 300, home: 650 },
+      5: { name: "باتنة", office: 300, home: 650 },
+      6: { name: "بجاية", office: 300, home: 650 },
+      7: { name: "بسكرة", office: 400, home: 750 },
+      8: { name: "بشار", office: 900, home: 1200 },
+      9: { name: "البليدة", office: 250, home: 650 },
+      10: { name: "البويرة", office: 250, home: 650 },
+      11: { name: "تمنراست", office: 1200, home: 1600 },
+      12: { name: "تبسة", office: 400, home: 750 },
+      13: { name: "تلمسان", office: 250, home: 650 },
+      14: { name: "تيارت", office: 300, home: 650 },
+      15: { name: "تيزي وزو", office: 250, home: 600 },
+      16: { name: "الجزائر", office: 250, home: 500 },
+      17: { name: "الجلفة", office: 500, home: 700 },
+      18: { name: "جيجل", office: 300, home: 650 },
+      19: { name: "سطيف", office: 250, home: 650 },
+      20: { name: "سعيدة", office: 400, home: 700 },
+      21: { name: "سكيكدة", office: 300, home: 650 },
+      22: { name: "سيدي بلعباس", office: 200, home: 300 },
+      23: { name: "عنابة", office: 300, home: 650 },
+      24: { name: "قالمة", office: 400, home: 700 },
+      25: { name: "قسنطينة", office: 250, home: 650 },
+      26: { name: "المدية", office: 250, home: 650 },
+      27: { name: "مستغانم", office: 250, home: 650 },
+      28: { name: "المسيلة", office: 300, home: 650 },
+      29: { name: "معسكر", office: 400, home: 700 },
+      30: { name: "ورقلة", office: 600, home: 900 },
+      31: { name: "وهران", office: 250, home: 650 },
+      32: { name: "البيض", office: 600, home: 900 },
+      33: { name: "إليزي", office: 1500, home: 1800 },
+      34: { name: "برج بوعريريج", office: 250, home: 650 },
+      35: { name: "بومرداس", office: 250, home: 650 },
+      36: { name: "الطارف", office: 400, home: 750 },
+      37: { name: "تندوف", office: 1200, home: 1600 },
+      38: { name: "تيسمسيلت", office: 300, home: 650 },
+      39: { name: "الوادي", office: 600, home: 900 },
+      40: { name: "خنشلة", office: 400, home: 700 },
+      41: { name: "سوق أهراس", office: 400, home: 700 },
+      42: { name: "تيبازة", office: 250, home: 650 },
+      43: { name: "ميلة", office: 300, home: 650 },
+      44: { name: "عين الدفلى", office: 250, home: 650 },
+      45: { name: "النعامة", office: 600, home: 900 },
+      46: { name: "عين تموشنت", office: 400, home: 700 },
+      47: { name: "غرداية", office: 600, home: 900 },
+      48: { name: "غليزان", office: 250, home: 650 },
+      49: { name: "تيميمون", office: 900, home: 1200 },
+      50: { name: "برج باجي مختار", office: 900, home: 1200 },
+      51: { name: "أولاد جلال", office: 500, home: 800 },
+      52: { name: "بني عباس", office: 900, home: 1200 },
+      53: { name: "عين صالح", office: 900, home: 1200 },
+      54: { name: "عين قزام", office: 1500, home: 1800 },
+      55: { name: "تقرت", office: 600, home: 900 },
+      56: { name: "جانت", office: 1500, home: 1800 },
+      57: { name: "المغير", office: 600, home: 900 },
+      58: { name: "المنيعة", office: 800, home: 1100 }
+    };
+
+    const algeriaJson = document.getElementById('algeriaJson');
+    const jsonStatus = document.getElementById('jsonStatus');
+
+    function setStatus(text, ok = true) {
+      jsonStatus.textContent = text;
+      jsonStatus.className = ok ? 'text-green-700 font-bold' : 'text-red-700 font-bold';
+    }
+
+    function loadDefaultJson() {
+      algeriaJson.value = JSON.stringify(DEFAULT_ALGERIA_DATA, null, 2);
+      setStatus('تم تحميل JSON الافتراضي', true);
+    }
+
+    function parseAlgeriaJson() {
+      const raw = algeriaJson.value.trim();
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') throw new Error('JSON غير صالح');
+      // Simple validation: must have 1..58
+      for (let i = 1; i <= 58; i++) {
+        if (!data[i]) throw new Error('مفقود ولاية رقم ' + i);
+        if (typeof data[i].office !== 'number' || typeof data[i].home !== 'number') throw new Error('أسعار غير صحيحة في ولاية ' + i);
+      }
+      return data;
+    }
+
+    document.getElementById('validateJsonBtn').addEventListener('click', () => {
+      try {
+        parseAlgeriaJson();
+        setStatus('JSON صحيح ✅', true);
+      } catch (e) {
+        setStatus('خطأ: ' + e.message, false);
+      }
+    });
+
+    document.getElementById('resetJsonBtn').addEventListener('click', loadDefaultJson);
+
+    loadDefaultJson();
+
+    // -------------------- ZIP Generators --------------------
+
+    function themeLiquidBase({ storeName, fbPixel, ttPixel, gaId }) {
+      // Add pixels (optional) in theme.liquid
+      const pixelScripts = `\n` +
+        (fbPixel ? `<!-- Facebook Pixel -->\n<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${fbPixel}');fbq('track','PageView');</script>\n` : '') +
+        (ttPixel ? `<!-- TikTok Pixel -->\n<script>!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${ttPixel}');ttq.page();}(window,document,'ttq');</script>\n` : '') +
+        (gaId ? `<!-- Google Analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script>\n<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');</script>\n` : '');
+
+      return `<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ page_title }} - ${storeName || '{{ shop.name }}'}</title>
+    {{ content_for_header }}
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
+    ${pixelScripts}
+  </head>
+  <body class="bg-gray-50">
+    {% section 'header' %}
+    <main id="MainContent" role="main">{{ content_for_layout }}</main>
+    {% section 'footer' %}
+    <script src="{{ 'theme.js' | asset_url }}" defer></script>
+  </body>
+</html>`;
+    }
+
+    function sectionHeader({ storeName }) {
+      return `<header class="bg-gradient-to-br from-indigo-500 to-purple-700 sticky top-0 z-40 shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 py-4">
+    <div class="flex items-center justify-between">
+      <a href="{{ routes.root_url }}" class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
+          <span class="text-2xl font-black text-purple-700">{{ shop.name | slice: 0, 1 }}</span>
+        </div>
+        <div>
+          <div class="text-xl font-bold text-white">${storeName || '{{ shop.name }}'}</div>
+          <div class="text-xs text-white/70">تسوق بثقة</div>
+        </div>
+      </a>
+      <div class="hidden md:block w-full max-w-md mx-6">
+        <form action="{{ routes.search_url }}" method="get" role="search" class="relative">
+          <input type="search" name="q" placeholder="ابحث عن منتج..." class="w-full px-4 py-2 pr-10 rounded-xl border-0 focus:ring-2 focus:ring-purple-300">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
+        </form>
+      </div>
+      <a href="{{ routes.cart_url }}" class="text-white text-xl" aria-label="Cart">🛒</a>
+    </div>
+  </div>
+</header>`;
+    }
+
+    function sectionFooter({ whatsapp }) {
+      const wa = whatsapp ? `
+<a href="https://wa.me/${whatsapp}" target="_blank" rel="noopener" class="fixed bottom-6 left-6 z-40 w-14 h-14 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-all hover:scale-110">💬</a>
+` : '';
+      return `<footer class="bg-gradient-to-br from-indigo-500 to-purple-700 py-10 mt-12 text-white">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid md:grid-cols-3 gap-8">
+      <div>
+        <div class="text-xl font-bold mb-2">{{ shop.name }}</div>
+        <p class="text-white/70">متجر إلكتروني - الدفع عند الاستلام</p>
+      </div>
+      <div>
+        <div class="font-bold mb-2">روابط</div>
+        <div class="space-y-2 text-white/80">
+          <a class="block hover:underline" href="{{ routes.root_url }}">الرئيسية</a>
+          <a class="block hover:underline" href="{{ routes.all_products_collection_url }}">المنتجات</a>
+        </div>
+      </div>
+      <div>
+        <div class="font-bold mb-2">تواصل</div>
+        <div class="text-white/80 text-sm">{{ shop.email }}</div>
+      </div>
+    </div>
+    <div class="border-t border-white/20 pt-6 mt-8 text-center text-white/70">© {{ 'now' | date: "%Y" }} {{ shop.name }}</div>
+  </div>
+</footer>
+${wa}`;
+    }
+
+    function sectionMainIndex() {
+      return `<section class="bg-gradient-to-br from-indigo-500 to-purple-700 py-12 md:py-16">
+  <div class="max-w-7xl mx-auto px-4 text-center">
+    <h1 class="text-3xl md:text-5xl font-bold text-white mb-4">مرحباً بكم في {{ shop.name }}</h1>
+    <p class="text-white/80 text-lg">أفضل المنتجات بأفضل الأسعار - الدفع عند الاستلام</p>
+  </div>
+</section>
+
+<section class="py-8">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">منتجاتنا</h2>
+      <a href="{{ routes.all_products_collection_url }}" class="text-sm text-purple-700 font-bold hover:underline">عرض الكل</a>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      {% for product in collections.all.products limit: 24 %}
+        <a href="{{ product.url }}" class="block bg-white rounded-2xl overflow-hidden shadow-md hover:-translate-y-1 transition">
+          <div class="relative">
+            {% if product.featured_image %}
+              <img src="{{ product.featured_image | img_url: '600x600' }}" alt="{{ product.title }}" class="w-full h-40 md:h-48 object-cover" loading="lazy">
+            {% else %}
+              <div class="w-full h-40 md:h-48 bg-gray-200"></div>
+            {% endif %}
+            {% if product.compare_at_price_max > product.price %}
+              <span class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">تخفيض</span>
+            {% endif %}
+          </div>
+          <div class="p-3 md:p-4">
+            <div class="font-semibold text-gray-800 text-sm md:text-base line-clamp-2">{{ product.title }}</div>
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
+              <span class="text-lg font-bold text-green-600">{{ product.price | money }}</span>
+              {% if product.compare_at_price_max > product.price %}
+                <span class="text-xs text-gray-400 line-through">{{ product.compare_at_price_max | money }}</span>
+              {% endif %}
+            </div>
+            <div class="mt-3 w-full py-2 text-center bg-gradient-to-br from-indigo-500 to-purple-700 text-white font-bold rounded-xl">عرض المنتج</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>`;
+    }
+
+    function sectionMainProduct({ proxyPath }) {
+      return `<section class="py-8">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid md:grid-cols-2 gap-8 bg-white rounded-2xl shadow-lg p-6">
+      <div>
+        {% if product.featured_image %}
+          <img src="{{ product.featured_image | img_url: '900x900' }}" alt="{{ product.title }}" class="w-full h-80 md:h-96 object-cover rounded-2xl" loading="lazy">
+        {% endif %}
+      </div>
+      <div class="space-y-4">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">{{ product.title }}</h1>
+        <div class="text-2xl font-extrabold text-green-600" id="codProductPrice">{{ product.price | money }}</div>
+        <div class="text-gray-600 leading-relaxed">{{ product.description | strip_html }}</div>
+
+        {% form 'product', product, id: 'productFormShopify' %}
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+          <div class="flex gap-3">
+            <button type="button" class="flex-1 py-4 bg-green-600 text-white font-bold rounded-xl" data-open-cod>اشتري الآن (COD)</button>
+            <button type="submit" class="flex-1 py-4 bg-gradient-to-br from-indigo-500 to-purple-700 text-white font-bold rounded-xl">أضف للسلة</button>
+          </div>
+        {% endform %}
+
+        <script type="application/json" id="codProductJson">{
+          "id": {{ product.id | json }},
+          "title": {{ product.title | json }},
+          "handle": {{ product.handle | json }},
+          "url": {{ product.url | json }},
+          "image": {{ product.featured_image | img_url: '600x600' | json }},
+          "options": {{ product.options | json }},
+          "variants": [
+            {% for v in product.variants %}
+            {"id": {{ v.id | json }}, "gid": "gid://shopify/ProductVariant/{{ v.id }}", "title": {{ v.title | json }}, "price": {{ v.price | divided_by: 100 | json }}, "available": {{ v.available | json }}, "options": {{ v.options | json }}}{% unless forloop.last %},{% endunless %}
+            {% endfor %}
+          ]
+        }</script>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COD Modal -->
+<div class="cod-modal fixed inset-0 bg-black/50 hidden items-center justify-center p-4" id="codModal">
+  <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden">
+    <div class="bg-gradient-to-br from-indigo-500 to-purple-700 p-4 flex items-center justify-between">
+      <div class="text-white font-bold">إتمام الطلب (الدفع عند الاستلام)</div>
+      <button type="button" class="text-white" data-close-cod>✕</button>
+    </div>
+
+    <div class="p-4 space-y-3">
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex gap-3 items-center">
+        <img id="codSummaryImg" class="w-14 h-14 rounded-lg object-cover border" alt="" loading="lazy">
+        <div class="flex-1">
+          <div id="codSummaryTitle" class="font-bold text-gray-800"></div>
+          <div id="codSummaryVariant" class="text-xs text-gray-500"></div>
+          <div class="text-sm font-bold text-green-600" id="codSummaryPrice"></div>
+        </div>
+      </div>
+
+      <div id="codVariantBox" class="hidden bg-gray-50 border border-gray-200 rounded-2xl p-4">
+        <div class="font-extrabold text-gray-800 mb-2">اختر الخيارات</div>
+        <div id="codVariantSelectors" class="space-y-3"></div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-2">
+        <input id="codName" class="w-full px-4 py-3 border rounded-xl" placeholder="الاسم الكامل *" required>
+        <input id="codPhone" class="w-full px-4 py-3 border rounded-xl" placeholder="رقم الهاتف *" dir="ltr" required>
+        <select id="codProvince" class="w-full px-4 py-3 border rounded-xl bg-white" required>
+          <option value="">-- اختر الولاية --</option>
+        </select>
+        <input id="codMunicipality" class="w-full px-4 py-3 border rounded-xl" placeholder="البلدية *" required>
+        <input id="codAddress" class="w-full px-4 py-3 border rounded-xl" placeholder="العنوان بالتفصيل (اختياري)">
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="cursor-pointer">
+            <input type="radio" name="codDelivery" value="office" class="hidden" checked>
+            <div class="border-2 border-gray-200 rounded-xl p-3 text-center hover:border-purple-400 transition-all">
+              <div class="font-bold">مكتب</div>
+              <div class="text-purple-700 font-extrabold" id="codOfficePrice">--</div>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="codDelivery" value="home" class="hidden">
+            <div class="border-2 border-gray-200 rounded-xl p-3 text-center hover:border-purple-400 transition-all">
+              <div class="font-bold">منزل</div>
+              <div class="text-purple-700 font-extrabold" id="codHomePrice">--</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-xl p-3 text-sm">
+          <div class="flex justify-between"><span>سعر المنتج:</span><b id="codSubtotal">0</b></div>
+          <div class="flex justify-between"><span>التوصيل:</span><b id="codShipping">0</b></div>
+          <div class="border-t border-purple-200 mt-2 pt-2 flex justify-between text-base"><span class="font-extrabold">المجموع:</span><span class="font-extrabold text-purple-700" id="codTotal">0</span></div>
+        </div>
+
+        <div id="codStatus" class="hidden text-sm p-3 rounded-xl"></div>
+
+        <button type="button" class="w-full py-3 bg-green-600 text-white font-bold rounded-xl" data-submit-cod>
+          تأكيد الطلب
+        </button>
+
+        <p class="text-xs text-gray-500">سيتم إرسال الطلب عبر App Proxy إلى تطبيق COD ثم إنشاؤه داخل Shopify.</p>
+      </div>
+    </div>
+  </div>
+</div>`;
+    }
+
+    function themeCss() {
+      return `/* theme.css (generated) */
+.variant-chip{
+  border:2px solid #e5e7eb;
+  background:#fff;
+  color:#374151;
+  padding:12px 16px;
+  border-radius:14px;
+  font-weight:800;
+  transition:all .15s ease;
+  user-select:none;
+  min-width:88px;
+  text-align:center;
+}
+.variant-chip:hover{border-color:#a78bfa;transform:translateY(-1px)}
+.variant-chip.selected{
+  border-color:#667eea;
+  color:#fff;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  box-shadow:0 12px 24px rgba(102,126,234,.22)
+}
+.cod-modal.show{display:flex}
+`;
+    }
+
+    function themeJs({ algeriaData, proxyPath }) {
+      const dataStr = JSON.stringify(algeriaData);
+      const safeProxy = proxyPath || '/apps/cod-order';
+
+      // IMPORTANT: This generator file must NOT contain nested template literals.
+      // The generated theme.js uses only string concatenation (no backticks) to avoid escaping issues.
+      return `// theme.js (generated)
+
+const DZD = (n) => {
+  try { return new Intl.NumberFormat('ar-DZ').format(Number(n||0)) + ' دج'; } catch { return (n||0) + ' دج'; }
+};
+
+const algeriaData = ${dataStr};
+
+function setCodStatus(msg, type='info') {
+  const box = document.getElementById('codStatus');
+  if (!box) return;
+  box.classList.remove('hidden');
+  box.className = 'text-sm p-3 rounded-xl ' + (type === 'error' ? 'bg-red-50 text-red-700' : type === 'success' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-800');
+  box.textContent = msg;
+}
+
+function getProductData() {
+  const el = document.getElementById('codProductJson');
+  if (!el) return null;
+  try { return JSON.parse(el.textContent || '{}'); } catch { return null; }
+}
+
+function fillProvinces() {
+  const sel = document.getElementById('codProvince');
+  if (!sel) return;
+  if (sel.options.length > 1) return;
+  for (let i=1;i<=58;i++) {
+    if (!algeriaData[i]) continue;
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = i + ' - ' + algeriaData[i].name;
+    sel.appendChild(opt);
+  }
+}
+
+function getSelectedDeliveryType() {
+  const el = document.querySelector('input[name="codDelivery"]:checked');
+  return el ? el.value : 'office';
+}
+
+function updateShippingPriceUI() {
+  const code = document.getElementById('codProvince') ? document.getElementById('codProvince').value : '';
+  const officeEl = document.getElementById('codOfficePrice');
+  const homeEl = document.getElementById('codHomePrice');
+  if (!code || !algeriaData[code]) {
+    if (officeEl) officeEl.textContent = '--';
+    if (homeEl) homeEl.textContent = '--';
+    return;
+  }
+  if (officeEl) officeEl.textContent = DZD(algeriaData[code].office);
+  if (homeEl) homeEl.textContent = DZD(algeriaData[code].home);
+}
+
+function resolveVariant(product, selectedOptions) {
+  if (!product || !Array.isArray(product.variants) || !product.variants.length) return null;
+  const opts = selectedOptions || [];
+  const found = product.variants.find(function(v){
+    if (!Array.isArray(v.options)) return false;
+    if (v.options.length !== opts.length) return false;
+    for (let i=0;i<opts.length;i++) {
+      if (String(v.options[i]) !== String(opts[i])) return false;
+    }
+    return true;
+  });
+  return found || product.variants[0];
+}
+
+function buildVariantSelectors(product) {
+  const box = document.getElementById('codVariantBox');
+  const wrap = document.getElementById('codVariantSelectors');
+  if (!box || !wrap) return;
+
+  const opts = Array.isArray(product && product.options) ? product.options : [];
+  if (opts.length <= 1 && (opts[0] === 'Title' || opts[0] === 'Default Title')) {
+    box.classList.add('hidden');
+    wrap.innerHTML = '';
+    return;
+  }
+
+  box.classList.remove('hidden');
+
+  // values per option from variants
+  const valuesByIndex = opts.map(function(){ return new Set(); });
+  (product.variants || []).forEach(function(v){
+    (v.options || []).forEach(function(val, idx){
+      if (valuesByIndex[idx]) valuesByIndex[idx].add(val);
+    });
+  });
+
+  wrap.innerHTML = opts.map(function(name, idx){
+    const vals = Array.from(valuesByIndex[idx] || []);
+    const chips = vals.map(function(v, i){
+      return '<button type="button" class="variant-chip ' + (i===0 ? 'selected' : '') + '" data-opt-index="' + idx + '" data-opt-value="' + encodeURIComponent(v) + '">' + v + '</button>';
+    }).join('');
+
+    return (
+      '<div>' +
+        '<div class="text-sm font-bold text-gray-700 mb-2">' + name + '</div>' +
+        '<div class="flex flex-wrap gap-2" data-group="' + idx + '">' + chips + '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  wrap.querySelectorAll('.variant-chip').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const idx = btn.getAttribute('data-opt-index');
+      const group = wrap.querySelector('[data-group="' + idx + '"]');
+      if (group) group.querySelectorAll('.variant-chip').forEach(function(b){ b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      updateCodSummary();
+    });
+  });
+}
+
+function getSelectedOptionsFromUI() {
+  const wrap = document.getElementById('codVariantSelectors');
+  if (!wrap) return [];
+  const groups = Array.from(wrap.querySelectorAll('[data-group]'))
+    .sort(function(a,b){ return Number(a.getAttribute('data-group')) - Number(b.getAttribute('data-group')); });
+
+  const out = [];
+  groups.forEach(function(g){
+    const sel = g.querySelector('.variant-chip.selected');
+    if (sel) out.push(decodeURIComponent(sel.getAttribute('data-opt-value') || ''));
+  });
+  return out;
+}
+
+function updateCodSummary() {
+  const product = getProductData();
+  if (!product) return;
+
+  const selectedOptions = getSelectedOptionsFromUI();
+  const variant = resolveVariant(product, selectedOptions);
+
+  const titleEl = document.getElementById('codSummaryTitle');
+  const varEl = document.getElementById('codSummaryVariant');
+  const imgEl = document.getElementById('codSummaryImg');
+  const priceEl = document.getElementById('codSummaryPrice');
+
+  if (titleEl) titleEl.textContent = product.title || '';
+  if (imgEl && product.image) imgEl.src = product.image;
+
+  const variantLabel = (variant && variant.title && variant.title !== 'Default Title') ? variant.title : (selectedOptions.join(' / ') || '');
+  if (varEl) varEl.textContent = variantLabel ? ('الخيارات: ' + variantLabel) : '';
+
+  const unitPrice = Number(variant && variant.price != null ? variant.price : 0);
+  if (priceEl) priceEl.textContent = DZD(unitPrice);
+
+  const provinceEl = document.getElementById('codProvince');
+  const provinceCode = provinceEl ? provinceEl.value : '';
+  const deliveryType = getSelectedDeliveryType();
+  const shipping = (provinceCode && algeriaData[provinceCode]) ? (deliveryType === 'home' ? algeriaData[provinceCode].home : algeriaData[provinceCode].office) : 0;
+
+  const subEl = document.getElementById('codSubtotal');
+  const shipEl = document.getElementById('codShipping');
+  const totEl = document.getElementById('codTotal');
+
+  if (subEl) subEl.textContent = DZD(unitPrice);
+  if (shipEl) shipEl.textContent = DZD(shipping);
+  if (totEl) totEl.textContent = DZD(unitPrice + shipping);
+}
+
+async function submitCodOrder() {
+  const product = getProductData();
+  if (!product) return;
+
+  const name = (document.getElementById('codName') ? document.getElementById('codName').value : '').trim();
+  const phone = (document.getElementById('codPhone') ? document.getElementById('codPhone').value : '').trim();
+  const provinceCode = (document.getElementById('codProvince') ? document.getElementById('codProvince').value : '').trim();
+  const municipality = (document.getElementById('codMunicipality') ? document.getElementById('codMunicipality').value : '').trim();
+  const addressDetails = (document.getElementById('codAddress') ? document.getElementById('codAddress').value : '').trim();
+  const deliveryType = getSelectedDeliveryType();
+
+  if (!name || !phone || !provinceCode || !municipality) {
+    setCodStatus('أكمل المعلومات المطلوبة: الاسم + الهاتف + الولاية + البلدية', 'error');
+    return;
+  }
+
+  const selectedOptions = getSelectedOptionsFromUI();
+  const variant = resolveVariant(product, selectedOptions);
+  if (!variant || variant.available === false) {
+    setCodStatus('هذه التركيبة غير متوفرة', 'error');
+    return;
+  }
+
+  const unitPrice = Number(variant.price || 0);
+  const shipping = (algeriaData[provinceCode]) ? (deliveryType === 'home' ? algeriaData[provinceCode].home : algeriaData[provinceCode].office) : 0;
+
+  const payload = {
+    source: 'shopify-theme',
+    customer: { name: name, phone: phone },
+    address: {
+      provinceCode: provinceCode,
+      province: (algeriaData[provinceCode] ? algeriaData[provinceCode].name : ''),
+      municipality: municipality,
+      details: addressDetails,
+      deliveryType: deliveryType
+    },
+    product: {
+      id: product.id,
+      title: product.title,
+      url: product.url,
+      image: product.image,
+      variant_id: variant.id,
+      variant_gid: variant.gid,
+      variant_title: variant.title,
+      selected_options: selectedOptions
+    },
+    pricing: {
+      currency: 'DZD',
+      unit_price: unitPrice,
+      shipping: shipping,
+      total: unitPrice + shipping
+    },
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    setCodStatus('جاري إرسال الطلب...', 'info');
+    const res = await fetch('${safeProxy}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(function(){ return {}; });
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || ('HTTP ' + res.status));
+    }
+
+    setCodStatus('✅ تم إرسال طلبك بنجاح! رقم الطلب: ' + (data.order_name || data.orderName || 'تم الإنشاء'), 'success');
+  } catch (e) {
+    setCodStatus('تعذر إرسال الطلب: ' + (e.message || 'خطأ غير معروف') + '. تأكد أن App Proxy يعمل.', 'error');
+  }
+}
+
+// UI events
+document.addEventListener('click', function(e){
+  const open = e.target.closest('[data-open-cod]');
+  const close = e.target.closest('[data-close-cod]');
+  const submit = e.target.closest('[data-submit-cod]');
+  const modal = document.getElementById('codModal');
+
+  if (open) {
+    const product = getProductData();
+    fillProvinces();
+    updateShippingPriceUI();
+    if (product) buildVariantSelectors(product);
+    updateCodSummary();
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
+  if (close) {
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  if (submit) {
+    submitCodOrder();
+  }
+});
+
+document.addEventListener('change', function(e){
+  const t = e.target;
+  if (t && (t.id === 'codProvince' || t.name === 'codDelivery')) {
+    updateShippingPriceUI();
+    updateCodSummary();
+  }
+});
+`;
+    }
+
+    function settingsSchema() {
+      return JSON.stringify([
+        {
+          name: 'General',
+          settings: [
+            { type: 'text', id: 'whatsapp', label: 'WhatsApp (optional)' }
+          ]
+        }
+      ], null, 2);
+    }
+
+    function indexTemplate() {
+      return JSON.stringify({ sections: { main: { type: 'main-index' } }, order: ['main'] }, null, 2);
+    }
+
+    function productTemplate() {
+      return JSON.stringify({ sections: { main: { type: 'main-product' } }, order: ['main'] }, null, 2);
+    }
+
+    const downloadFallback = document.getElementById('downloadFallback');
+
+    function showFallbackLink(blob, filename) {
+      if (!downloadFallback) return;
+      const url = URL.createObjectURL(blob);
+      downloadFallback.classList.remove('hidden');
+      downloadFallback.innerHTML = `في حال لم يبدأ التحميل تلقائياً: <a class="underline font-extrabold" href="${url}" download="${filename}">اضغط هنا لتنزيل الملف</a>`;
+    }
+
+    function triggerDownload(blob, filename) {
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Provide fallback link (some browsers block programmatic download)
+        showFallbackLink(blob, filename);
+        // Cleanup object URL later
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } catch (e) {
+        console.error('Download failed', e);
+        showFallbackLink(blob, filename);
+      }
+    }
+
+    async function downloadThemeZip() {
+      await ensureJSZip();
+
+      let algeriaData;
+      try {
+        algeriaData = parseAlgeriaJson();
+        setStatus('JSON صحيح ✅', true);
+      } catch (e) {
+        setStatus('خطأ JSON: ' + e.message, false);
+        alert('تحقق من JSON الخاص بالولايات أولاً');
+        return;
+      }
+
+      const storeName = document.getElementById('storeName').value.trim();
+      const whatsapp = document.getElementById('whatsapp').value.trim();
+      const fbPixel = document.getElementById('fbPixel').value.trim();
+      const ttPixel = document.getElementById('ttPixel').value.trim();
+      const gaId = document.getElementById('gaId').value.trim();
+      const proxyPath = document.getElementById('proxyPath').value.trim() || '/apps/cod-order';
+
+      const zip = new JSZip();
+      zip.folder('assets');
+      zip.folder('config');
+      zip.folder('layout');
+      zip.folder('sections');
+      zip.folder('templates');
+
+      zip.file('layout/theme.liquid', themeLiquidBase({ storeName, fbPixel, ttPixel, gaId }));
+      zip.file('sections/header.liquid', sectionHeader({ storeName }));
+      zip.file('sections/footer.liquid', sectionFooter({ whatsapp }));
+      zip.file('sections/main-index.liquid', sectionMainIndex());
+      zip.file('sections/main-product.liquid', sectionMainProduct({ proxyPath }));
+      zip.file('templates/index.json', indexTemplate());
+      zip.file('templates/product.json', productTemplate());
+      zip.file('assets/theme.css', themeCss());
+      zip.file('assets/theme.js', themeJs({ algeriaData, proxyPath }));
+      zip.file('config/settings_schema.json', settingsSchema());
+
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      const filename = `${(storeName || 'shop').replace(/\s+/g,'-')}-shopify-theme.zip`;
+      triggerDownload(blob, filename);
+    }
+
+    // -------------------- COD APP ZIP (Node.js) --------------------
+
+    function codAppPackageJson() {
+      return JSON.stringify({
+        name: 'shopify-cod-app-proxy',
+        version: '1.0.0',
+        type: 'module',
+        private: true,
+        scripts: { dev: 'node server.js', start: 'node server.js' },
+        dependencies: { express: '^4.19.2' }
+      }, null, 2);
+    }
+
+    function codAppEnvExample() {
+      return `# Shopify\nSHOPIFY_API_SECRET=\nSHOPIFY_ACCESS_TOKEN=\nSHOPIFY_SHOP=your-store.myshopify.com\n\n# Server\nPORT=3000\n`;
+    }
+
+    function codAppReadme() {
+      return `# Shopify COD App Proxy (Node.js)\n\nهذا تطبيق بسيط لاستقبال طلبات COD من القالب عبر Shopify App Proxy ثم إنشاء طلب داخل Shopify (Order) عبر Admin API.\n\n## 1) المتطلبات\n- Shopify Admin (Develop apps / Custom app)\n- سيرفر لنشر Node.js (Render/Railway/VPS)\n\n## 2) إعداد App Proxy داخل Shopify\nداخل التطبيق: App proxy\n- Subpath prefix: apps\n- Subpath: cod-order\n- Proxy URL: https://YOUR-SERVER-DOMAIN.com/shopify/cod\n\n## 3) متغيرات البيئة\nانسخ .env.example إلى .env\n- SHOPIFY_API_SECRET: Secret Key للتطبيق\n- SHOPIFY_ACCESS_TOKEN: Admin API access token\n- SHOPIFY_SHOP: your-store.myshopify.com\n\n## 4) تشغيل محلي\n\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n\n## 5) ماذا يحدث عند وصول الطلب؟\n- التحقق من signature (App Proxy)\n- إنشاء Draft Order\n- ثم draftOrderComplete (paymentPending=true) لتكوين Order\n- إرجاع order name (مثلاً #1001)\n\n> ملاحظة: يمكنك تعديل نصوص الطلب (note / attributes) داخل server.js.\n`;
+    }
+
+    function codAppServerJs() {
+      // IMPORTANT: Avoid nested template literals (backticks) inside this generator.
+      // We generate server.js with only classic strings so this page doesn't break.
+      return [
+        "import express from 'express';",
+        "import crypto from 'crypto';",
+        "",
+        "const app = express();",
+        "app.use(express.json({ limit: '1mb' }));",
+        "app.use(express.urlencoded({ extended: true }));",
+        "",
+        "const PORT = process.env.PORT || 3000;",
+        "const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';",
+        "const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN || '';",
+        "const SHOPIFY_SHOP = (process.env.SHOPIFY_SHOP || '').trim();",
+        "",
+        "function timingSafeEqual(a, b) {",
+        "  const aBuf = Buffer.from(a);",
+        "  const bBuf = Buffer.from(b);",
+        "  if (aBuf.length !== bBuf.length) return false;",
+        "  return crypto.timingSafeEqual(aBuf, bBuf);",
+        "}",
+        "",
+        "function verifyAppProxySignature(query) {",
+        "  const signature = String(query.signature || '');",
+        "  if (!signature) return false;",
+        "  const params = { ...query };",
+        "  delete params.signature;",
+        "  const message = Object.keys(params)",
+        "    .sort()",
+        "    .map(k => String(k) + '=' + (Array.isArray(params[k]) ? params[k].join(',') : params[k]))",
+        "    .join('');",
+        "  const digest = crypto.createHmac('sha256', SHOPIFY_API_SECRET).update(message).digest('hex');",
+        "  try {",
+        "    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));",
+        "  } catch {",
+        "    return false;",
+        "  }",
+        "}",
+        "",
+        "async function shopifyGraphql(shop, token, query, variables) {",
+        "  const url = 'https://' + shop + '/admin/api/2024-10/graphql.json';",
+        "  const res = await fetch(url, {",
+        "    method: 'POST',",
+        "    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },",
+        "    body: JSON.stringify({ query: query, variables: variables || {} })",
+        "  });",
+        "  const json = await res.json();",
+        "  if (!res.ok) throw new Error('Shopify GraphQL HTTP ' + res.status + ': ' + JSON.stringify(json));",
+        "  if (json.errors && json.errors.length) throw new Error('Shopify GraphQL errors: ' + JSON.stringify(json.errors));",
+        "  return json.data;",
+        "}",
+        "",
+        "app.get('/health', (_req, res) => res.json({ ok: true }));",
+        "",
+        "app.post('/shopify/cod', async (req, res) => {",
+        "  try {",
+        "    if (!SHOPIFY_API_SECRET) return res.status(500).json({ ok: false, error: 'Missing SHOPIFY_API_SECRET' });",
+        "    if (!SHOPIFY_ACCESS_TOKEN) return res.status(500).json({ ok: false, error: 'Missing SHOPIFY_ACCESS_TOKEN' });",
+        "    if (!SHOPIFY_SHOP) return res.status(500).json({ ok: false, error: 'Missing SHOPIFY_SHOP' });",
+        "",
+        "    if (!verifyAppProxySignature(req.query)) return res.status(401).json({ ok: false, error: 'Invalid signature' });",
+        "    const shopFromQuery = String(req.query.shop || '');",
+        "    if (shopFromQuery && shopFromQuery !== SHOPIFY_SHOP) return res.status(403).json({ ok: false, error: 'Shop mismatch' });",
+        "",
+        "    const payload = req.body || {};",
+        "    const customerName = String(payload && payload.customer && payload.customer.name || '').trim();",
+        "    const customerPhone = String(payload && payload.customer && payload.customer.phone || '').trim();",
+        "",
+        "    const province = String(payload && payload.address && payload.address.province || '').trim();",
+        "    const municipality = String(payload && payload.address && payload.address.municipality || '').trim();",
+        "    const details = String(payload && payload.address && payload.address.details || '').trim();",
+        "    const deliveryType = String(payload && payload.address && payload.address.deliveryType || '').trim();",
+        "",
+        "    const variantGid = String(payload && payload.product && payload.product.variant_gid || '').trim();",
+        "    const variantTitle = String(payload && payload.product && payload.product.variant_title || '').trim();",
+        "    const productTitle = String(payload && payload.product && payload.product.title || '').trim();",
+        "    const shipping = Number(payload && payload.pricing && payload.pricing.shipping || 0);",
+        "",
+        "    if (!customerName || !customerPhone || !variantGid) return res.status(400).json({ ok: false, error: 'Missing required fields (name/phone/variant_gid)' });",
+        "",
+        "    const createMutation = 'mutation draftOrderCreate($input: DraftOrderInput!) { draftOrderCreate(input: $input) { draftOrder { id } userErrors { field message } } }';",
+        "    const note = 'COD Order\\n' +",
+        "      'Name: ' + customerName + '\\n' +",
+        "      'Phone: ' + customerPhone + '\\n' +",
+        "      'Province: ' + province + '\\n' +",
+        "      'Municipality: ' + municipality + '\\n' +",
+        "      'Delivery: ' + deliveryType + '\\n' +",
+        "      'Address: ' + details + '\\n' +",
+        "      'Variant: ' + variantTitle + '\\n';",
+        "",
+        "    const input = {",
+        "      lineItems: [{ variantId: variantGid, quantity: 1 }],",
+        "      note: note,",
+        "      customAttributes: [",
+        "        { key: 'customer_phone', value: customerPhone },",
+        "        { key: 'province', value: province },",
+        "        { key: 'municipality', value: municipality },",
+        "        { key: 'delivery_type', value: deliveryType },",
+        "        { key: 'address_details', value: details },",
+        "        { key: 'product_title', value: productTitle },",
+        "        { key: 'variant_title', value: variantTitle },",
+        "      ].filter(Boolean),",
+        "      shippingAddress: { name: customerName, phone: customerPhone, countryCode: 'DZ', province: province || '', city: municipality || '', address1: details || '' }",
+        "    };",
+        "    if (shipping > 0) input.shippingLine = { title: 'Shipping', price: String(shipping) };",
+        "",
+        "    const createRes = await shopifyGraphql(SHOPIFY_SHOP, SHOPIFY_ACCESS_TOKEN, createMutation, { input: input });",
+        "    const errs = (createRes && createRes.draftOrderCreate && createRes.draftOrderCreate.userErrors) ? createRes.draftOrderCreate.userErrors : [];",
+        "    if (errs.length) return res.status(400).json({ ok: false, error: errs.map(e => e.message).join(' | ') });",
+        "    const draftId = createRes && createRes.draftOrderCreate && createRes.draftOrderCreate.draftOrder && createRes.draftOrderCreate.draftOrder.id;",
+        "    if (!draftId) throw new Error('No draft order id returned');",
+        "",
+        "    const completeMutation = 'mutation draftOrderComplete($id: ID!, $paymentPending: Boolean!) { draftOrderComplete(id: $id, paymentPending: $paymentPending) { draftOrder { order { name id } } userErrors { field message } } }';",
+        "    const completeRes = await shopifyGraphql(SHOPIFY_SHOP, SHOPIFY_ACCESS_TOKEN, completeMutation, { id: draftId, paymentPending: true });",
+        "    const cerrs = (completeRes && completeRes.draftOrderComplete && completeRes.draftOrderComplete.userErrors) ? completeRes.draftOrderComplete.userErrors : [];",
+        "    if (cerrs.length) return res.status(400).json({ ok: false, error: cerrs.map(e => e.message).join(' | ') });",
+        "",
+        "    const orderName = completeRes && completeRes.draftOrderComplete && completeRes.draftOrderComplete.draftOrder && completeRes.draftOrderComplete.draftOrder.order && completeRes.draftOrderComplete.draftOrder.order.name;",
+        "    return res.json({ ok: true, order_name: orderName || null, draft_id: draftId });",
+        "  } catch (e) {",
+        "    console.error(e);",
+        "    return res.status(500).json({ ok: false, error: e.message });",
+        "  }",
+        "});",
+        "",
+        "app.listen(PORT, () => console.log('COD app listening on :' + PORT));",
+        ""
+      ].join('\n');
+    }
+
+    async function downloadCodAppZip() {
+      await ensureJSZip();
+      const zip = new JSZip();
+      zip.file('package.json', codAppPackageJson());
+      zip.file('server.js', codAppServerJs());
+      zip.file('README.md', codAppReadme());
+      zip.file('.env.example', codAppEnvExample());
+
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      triggerDownload(blob, 'shopify-cod-app.zip');
+    }
+
+    // Buttons
+    document.getElementById('downloadThemeBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('downloadThemeBtn');
+      const prev = btn ? btn.textContent : '';
+      try {
+        if (downloadFallback) downloadFallback.classList.add('hidden');
+        if (btn) { btn.disabled = true; btn.textContent = 'جاري التحضير...'; }
+        await downloadThemeZip();
+      } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء إنشاء القالب: ' + (err && err.message ? err.message : 'غير معروف') + '\nافتح Console لمعرفة التفاصيل.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = prev || 'تنزيل Theme (ZIP)'; }
+      }
+    });
+
+    document.getElementById('downloadAppBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('downloadAppBtn');
+      const prev = btn ? btn.textContent : '';
+      try {
+        if (downloadFallback) downloadFallback.classList.add('hidden');
+        if (btn) { btn.disabled = true; btn.textContent = 'جاري التحضير...'; }
+        await downloadCodAppZip();
+      } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء إنشاء تطبيق COD: ' + (err && err.message ? err.message : 'غير معروف') + '\nافتح Console لمعرفة التفاصيل.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = prev || 'تنزيل COD App (ZIP)'; }
+      }
+    });
+
+    // Diagnostics + enable/disable buttons
+    const zipReady = document.getElementById('zipReady');
+    const downloadThemeBtn = document.getElementById('downloadThemeBtn');
+    const downloadAppBtn = document.getElementById('downloadAppBtn');
+
+    function setButtonsEnabled(on) {
+      [downloadThemeBtn, downloadAppBtn].forEach((b) => {
+        if (!b) return;
+        b.disabled = !on;
+        b.classList.toggle('opacity-60', !on);
+        b.classList.toggle('cursor-not-allowed', !on);
+      });
+    }
+
+    async function updateZipReady() {
+      if (!zipReady) return;
+      setButtonsEnabled(false);
+      try {
+        await ensureJSZip();
+        const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+        zipReady.textContent = inIframe
+          ? '✅ JSZip جاهز — لكن يبدو أنك تفتح الصفحة داخل iframe. إذا لم يبدأ التحميل افتح الصفحة في تبويب جديد.'
+          : '✅ JSZip جاهز — يمكنك تنزيل الملفات';
+        setButtonsEnabled(true);
+      } catch (e) {
+        console.error(e);
+        zipReady.textContent = '❌ تعذر تحميل JSZip — تحقق من اتصال الإنترنت أو CDN';
+        setButtonsEnabled(false);
+      }
+    }
+
+    updateZipReady();
+
+    window.addEventListener('error', (e) => {
+      console.error('GlobalError:', e.error || e.message);
+      if (zipReady) zipReady.textContent = '❌ خطأ في JavaScript: افتح Console';
+      setButtonsEnabled(false);
+    });
+
+  </script>
+</body>
+</html>
