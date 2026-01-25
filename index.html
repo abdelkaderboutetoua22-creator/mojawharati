@@ -1,1859 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="متجر إلكتروني جزائري - تسوق أونلاين بأفضل الأسعار">
-    <title x-data x-text="pageTitle || 'متجرنا - التسوق الإلكتروني في الجزائر'">متجرنا - التسوق الإلكتروني في الجزائر</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { font-family: 'Cairo', sans-serif; }
-        [x-cloak] { display: none !important; }
-        .product-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
-        .product-card { transition: all 0.3s ease; }
-        .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .modal-overlay { backdrop-filter: blur(4px); }
-        input:focus, select:focus, textarea:focus { outline: none; ring: 2px; ring-color: #2563eb; }
-        .option-btn { transition: all 0.2s ease; }
-        .option-btn.selected { border-color: #2563eb; background-color: #eff6ff; }
-        .option-btn:hover:not(.selected) { border-color: #93c5fd; }
-        .btn-primary { background-color: #2563eb; color: white; }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background-color: white; border: 2px solid #e5e7eb; color: #374151; }
-        .btn-secondary:hover { border-color: #d1d5db; background-color: #f9fafb; }
-        .image-grid-item { position: relative; }
-        .image-grid-item .delete-btn { position: absolute; top: 4px; left: 4px; opacity: 0; transition: opacity 0.2s; }
-        .image-grid-item:hover .delete-btn { opacity: 1; }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen" x-data="app()" x-init="init()">
-    
-    <!-- Consent Banner -->
-    <div x-show="showConsentBanner" x-cloak class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 z-50">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <p class="text-sm">نستخدم ملفات تعريف الارتباط لتحسين تجربتك. بالمتابعة، أنت توافق على سياسة الخصوصية.</p>
-            <div class="flex gap-3">
-                <button @click="acceptConsent()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium">قبول</button>
-                <button @click="rejectConsent()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium">رفض</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div class="fixed top-4 left-4 z-50 space-y-2">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="toast bg-white shadow-lg rounded-lg p-4 flex items-center gap-3 min-w-72" :class="toast.type === 'success' ? 'border-r-4 border-green-500' : 'border-r-4 border-red-500'">
-                <span x-text="toast.message"></span>
-            </div>
-        </template>
-    </div>
-
-    <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex items-center justify-between">
-                <a href="#" @click.prevent="navigateTo('home')" class="text-2xl font-bold text-blue-600">متجرنا</a>
-                
-                <!-- Search -->
-                <div class="hidden md:flex flex-1 max-w-md mx-8">
-                    <div class="relative w-full">
-                        <input type="text" x-model="searchQuery" @input="searchProducts()" placeholder="ابحث عن منتج..." class="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10">
-                        <svg class="w-5 h-5 absolute right-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <!-- Cart Button -->
-                    <button @click="navigateTo('cart')" class="relative p-2 hover:bg-gray-100 rounded-full">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        <span x-show="cart.length > 0" class="absolute -top-1 -left-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center" x-text="cartItemsCount"></span>
-                    </button>
-
-                    <!-- Admin Link -->
-                    <button @click="navigateTo('admin-login')" class="text-sm text-gray-600 hover:text-blue-600">لوحة التحكم</button>
-                </div>
-            </div>
-
-            <!-- Mobile Search -->
-            <div class="md:hidden mt-3">
-                <input type="text" x-model="searchQuery" @input="searchProducts()" placeholder="ابحث عن منتج..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            </div>
-        </div>
-
-        <!-- Categories -->
-        <div class="border-t bg-gray-50" x-show="!currentPage.startsWith('admin') && currentPage !== 'product'">
-            <div class="max-w-7xl mx-auto px-4 py-2 flex gap-4 overflow-x-auto">
-                <button @click="selectedCategory = null; filterProducts()" class="whitespace-nowrap px-3 py-1 rounded-full text-sm" :class="!selectedCategory ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-100'">الكل</button>
-                <template x-for="cat in categories" :key="cat.id">
-                    <button @click="selectedCategory = cat.id; filterProducts()" class="whitespace-nowrap px-3 py-1 rounded-full text-sm" :class="selectedCategory === cat.id ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-100'" x-text="cat.name"></button>
-                </template>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-6">
-        
-        <!-- Home Page -->
-        <div x-show="currentPage === 'home'" x-cloak>
-            <!-- Hero -->
-            <div class="bg-gradient-to-l from-blue-600 to-blue-800 rounded-2xl p-8 mb-8 text-white">
-                <h1 class="text-3xl md:text-4xl font-bold mb-4">مرحباً بك في متجرنا</h1>
-                <p class="text-lg opacity-90 mb-6">أفضل المنتجات بأسعار تنافسية - توصيل لكل الولايات</p>
-                <button @click="scrollToProducts()" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">تسوق الآن</button>
-            </div>
-
-            <!-- Products Grid -->
-            <div id="products-section">
-                <h2 class="text-2xl font-bold mb-6">منتجاتنا</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    <template x-for="product in filteredProducts" :key="product.id">
-                        <a :href="'#/product/' + (product.slug || product.id)" @click.prevent="navigateTo('product', product.slug || product.id)" class="product-card bg-white rounded-xl overflow-hidden shadow-md cursor-pointer block">
-                            <div class="aspect-square bg-gray-100 relative">
-                                <img :src="product.image" :alt="product.name" class="w-full h-full object-cover" loading="lazy">
-                                <span x-show="product.discount || product.original_price" class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">خصم</span>
-                            </div>
-                            <div class="p-4">
-                                <h3 class="font-semibold text-gray-800 mb-2 line-clamp-2" x-text="product.name"></h3>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-lg font-bold text-blue-600" x-text="formatPrice(product.price)"></span>
-                                    <span x-show="product.original_price" class="text-sm text-gray-400 line-through" x-text="formatPrice(product.original_price)"></span>
-                                </div>
-                                <div class="flex items-center gap-1 mt-2">
-                                    <template x-for="i in 5">
-                                        <svg class="w-4 h-4" :class="i <= product.rating ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                        </svg>
-                                    </template>
-                                    <span class="text-xs text-gray-500" x-text="'(' + product.reviews_count + ')'"></span>
-                                </div>
-                            </div>
-                        </a>
-                    </template>
-                </div>
-            </div>
-        </div>
-
-        <!-- Product Detail Page (Dedicated URL) -->
-        <div x-show="currentPage === 'product'" x-cloak>
-            <!-- 404 State -->
-            <div x-show="!selectedProduct && !isLoadingProduct" class="text-center py-16">
-                <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <h1 class="text-2xl font-bold text-gray-700 mb-2">المنتج غير موجود</h1>
-                <p class="text-gray-500 mb-6">عذراً، لم نتمكن من إيجاد المنتج المطلوب</p>
-                <button @click="navigateTo('home')" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">العودة للرئيسية</button>
-            </div>
-
-            <!-- Loading State -->
-            <div x-show="isLoadingProduct" class="text-center py-16">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p class="text-gray-500 mt-4">جاري التحميل...</p>
-            </div>
-
-            <!-- Product Content -->
-            <div x-show="selectedProduct && !isLoadingProduct">
-                <!-- Breadcrumb -->
-                <nav class="mb-6">
-                    <ol class="flex items-center gap-2 text-sm text-gray-500">
-                        <li><a href="#" @click.prevent="navigateTo('home')" class="hover:text-blue-600">الرئيسية</a></li>
-                        <li>/</li>
-                        <li x-text="getCategoryName(selectedProduct?.category_id)"></li>
-                        <li>/</li>
-                        <li class="text-gray-800" x-text="selectedProduct?.name"></li>
-                    </ol>
-                </nav>
-
-                <div class="grid md:grid-cols-2 gap-8">
-                    <!-- Image Gallery -->
-                    <div>
-                        <div class="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
-                            <img :src="selectedProduct?.images?.[selectedImageIndex] || selectedProduct?.image" :alt="selectedProduct?.name" class="w-full h-full object-cover">
-                        </div>
-                        <div class="flex gap-2 overflow-x-auto pb-2">
-                            <template x-for="(img, index) in (selectedProduct?.images?.length ? selectedProduct.images : [selectedProduct?.image])" :key="index">
-                                <button @click="selectedImageIndex = index" class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2" :class="selectedImageIndex === index ? 'border-blue-600' : 'border-gray-200'">
-                                    <img :src="img" class="w-full h-full object-cover">
-                                </button>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Product Info -->
-                    <div>
-                        <h1 class="text-3xl font-bold mb-4" x-text="selectedProduct?.name"></h1>
-                        <div class="flex items-center gap-3 mb-4">
-                            <span class="text-3xl font-bold text-blue-600" x-text="formatPrice(selectedProduct?.price)"></span>
-                            <span x-show="selectedProduct?.original_price" class="text-xl text-gray-400 line-through" x-text="formatPrice(selectedProduct?.original_price)"></span>
-                            <span x-show="selectedProduct?.original_price" class="bg-red-100 text-red-600 px-2 py-1 rounded text-sm font-medium" x-text="'-' + Math.round((1 - selectedProduct?.price / selectedProduct?.original_price) * 100) + '%'"></span>
-                        </div>
-
-                        <!-- Rating -->
-                        <div class="flex items-center gap-2 mb-6">
-                            <div class="flex">
-                                <template x-for="i in 5">
-                                    <svg class="w-5 h-5" :class="i <= selectedProduct?.rating ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                    </svg>
-                                </template>
-                            </div>
-                            <span class="text-gray-500" x-text="'(' + (selectedProduct?.reviews_count || 0) + ' تقييم)'"></span>
-                        </div>
-
-                        <!-- Sizes (if available) -->
-                        <div x-show="selectedProduct?.sizes?.length > 0" class="mb-6">
-                            <label class="block text-sm font-medium mb-2">المقاس:</label>
-                            <div class="flex flex-wrap gap-2">
-                                <template x-for="size in selectedProduct?.sizes" :key="size">
-                                    <button 
-                                        @click="selectedSize = size" 
-                                        class="option-btn px-4 py-2 border-2 rounded-lg font-medium"
-                                        :class="selectedSize === size ? 'selected border-blue-600 bg-blue-50' : 'border-gray-300'"
-                                        x-text="size"
-                                    ></button>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Colors (if available) -->
-                        <div x-show="selectedProduct?.colors?.length > 0" class="mb-6">
-                            <label class="block text-sm font-medium mb-2">اللون:</label>
-                            <div class="flex flex-wrap gap-2">
-                                <template x-for="color in selectedProduct?.colors" :key="color">
-                                    <button 
-                                        @click="selectedColor = color" 
-                                        class="option-btn px-4 py-2 border-2 rounded-lg font-medium"
-                                        :class="selectedColor === color ? 'selected border-blue-600 bg-blue-50' : 'border-gray-300'"
-                                        x-text="color"
-                                    ></button>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Quantity -->
-                        <div class="flex items-center gap-4 mb-6">
-                            <span class="font-medium">الكمية:</span>
-                            <div class="flex items-center border rounded-lg">
-                                <button @click="productQuantity > 1 && productQuantity--" class="px-4 py-2 hover:bg-gray-100 text-lg">-</button>
-                                <span class="px-6 py-2 border-x font-medium" x-text="productQuantity"></span>
-                                <button @click="productQuantity++" class="px-4 py-2 hover:bg-gray-100 text-lg">+</button>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons: Buy Now (RIGHT/PRIMARY) + Add to Cart (LEFT/SECONDARY) -->
-                        <div class="flex gap-3 mb-6">
-                            <button 
-                                @click="buyNow()"
-                                :disabled="isAddingToCart"
-                                aria-label="اشتري الآن"
-                                class="flex-1 btn-primary py-4 rounded-xl font-bold text-lg transition disabled:opacity-50"
-                            >
-                                <span x-show="!isAddingToCart">إشتري الآن</span>
-                                <span x-show="isAddingToCart">جاري...</span>
-                            </button>
-                            <button 
-                                @click="addToCartFromProductPage()"
-                                :disabled="isAddingToCart"
-                                aria-label="إضافة إلى السلة"
-                                class="flex-1 btn-secondary py-4 rounded-xl font-bold text-lg transition disabled:opacity-50"
-                            >
-                                إضافة إلى السلة
-                            </button>
-                        </div>
-
-                        <!-- Upsell Suggestions -->
-                        <div x-show="getUpsells(selectedProduct?.id).length > 0" class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                            <h4 class="font-semibold text-yellow-800 mb-3">قد يعجبك أيضاً</h4>
-                            <div class="space-y-3">
-                                <template x-for="upsell in getUpsells(selectedProduct?.id)" :key="upsell.product.id">
-                                    <div class="flex items-center gap-3 bg-white p-3 rounded-lg">
-                                        <img :src="upsell.product.image" class="w-16 h-16 rounded-lg object-cover">
-                                        <div class="flex-1">
-                                            <p class="font-medium" x-text="upsell.product.name"></p>
-                                            <p class="text-blue-600 font-bold" x-text="formatPrice(upsell.discounted_price || upsell.product.price)"></p>
-                                        </div>
-                                        <button @click="addToCart(upsell.product, 1, upsell.discounted_price)" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">أضف</button>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product Description Section -->
-                <div x-show="selectedProduct?.description" class="mt-8 bg-white rounded-xl p-6 shadow-sm">
-                    <h2 class="text-xl font-bold mb-4">وصف المنتج</h2>
-                    <div class="text-gray-600 leading-relaxed whitespace-pre-line" x-text="selectedProduct?.description"></div>
-                </div>
-
-                <!-- Reviews Section -->
-                <div class="mt-8 bg-white rounded-xl p-6 shadow-sm">
-                    <h2 class="text-xl font-bold mb-4">التقييمات (<span x-text="getProductReviews(selectedProduct?.id).length"></span>)</h2>
-                    
-                    <div class="space-y-4 mb-6">
-                        <template x-for="review in getProductReviews(selectedProduct?.id)" :key="review.id">
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-medium" x-text="review.name"></span>
-                                    <div class="flex">
-                                        <template x-for="i in 5">
-                                            <svg class="w-4 h-4" :class="i <= review.rating ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                            </svg>
-                                        </template>
-                                    </div>
-                                </div>
-                                <p class="text-gray-600" x-text="review.comment"></p>
-                            </div>
-                        </template>
-                    </div>
-
-                    <!-- Add Review Form -->
-                    <div class="border-t pt-6">
-                        <button @click="showReviewForm = !showReviewForm" class="text-blue-600 font-medium hover:underline mb-4">+ إضافة تقييم</button>
-                        <div x-show="showReviewForm" x-cloak class="bg-gray-50 rounded-lg p-4 mt-4">
-                            <input type="text" x-model="newReview.name" placeholder="اسمك" class="w-full px-4 py-2 border rounded-lg mb-3">
-                            <div class="flex items-center gap-2 mb-3">
-                                <span>التقييم:</span>
-                                <template x-for="i in 5">
-                                    <button @click="newReview.rating = i" type="button">
-                                        <svg class="w-6 h-6" :class="i <= newReview.rating ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                        </svg>
-                                    </button>
-                                </template>
-                            </div>
-                            <textarea x-model="newReview.comment" placeholder="تعليقك..." rows="3" class="w-full px-4 py-2 border rounded-lg mb-3"></textarea>
-                            <button @click="submitReview()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">إرسال التقييم</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Cart Page -->
-        <div x-show="currentPage === 'cart'" x-cloak>
-            <h1 class="text-2xl font-bold mb-6">سلة التسوق</h1>
-            
-            <div x-show="cart.length === 0" class="text-center py-16">
-                <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                <p class="text-gray-500 text-lg mb-4">سلتك فارغة</p>
-                <button @click="navigateTo('home')" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">تصفح المنتجات</button>
-            </div>
-
-            <div x-show="cart.length > 0" class="grid lg:grid-cols-3 gap-8">
-                <!-- Cart Items -->
-                <div class="lg:col-span-2 space-y-4">
-                    <template x-for="item in cart" :key="item.cartItemId || item.id">
-                        <div class="bg-white rounded-xl p-4 shadow-sm flex gap-4">
-                            <img :src="item.image" class="w-24 h-24 rounded-lg object-cover">
-                            <div class="flex-1">
-                                <h3 class="font-semibold mb-1" x-text="item.name"></h3>
-                                <!-- Show selected options -->
-                                <div x-show="item.options?.size || item.options?.color" class="text-sm text-gray-500 mb-1">
-                                    <span x-show="item.options?.size">المقاس: <span x-text="item.options?.size"></span></span>
-                                    <span x-show="item.options?.size && item.options?.color"> - </span>
-                                    <span x-show="item.options?.color">اللون: <span x-text="item.options?.color"></span></span>
-                                </div>
-                                <p class="text-blue-600 font-bold" x-text="formatPrice(item.applied_price || item.price)"></p>
-                                <div class="flex items-center gap-3 mt-2">
-                                    <div class="flex items-center border rounded">
-                                        <button @click="updateCartQuantity(item.cartItemId || item.id, item.quantity - 1)" class="px-2 py-1 hover:bg-gray-100">-</button>
-                                        <span class="px-3" x-text="item.quantity"></span>
-                                        <button @click="updateCartQuantity(item.cartItemId || item.id, item.quantity + 1)" class="px-2 py-1 hover:bg-gray-100">+</button>
-                                    </div>
-                                    <button @click="confirmRemoveItem(item)" class="text-red-500 hover:text-red-700 text-sm">حذف</button>
-                                </div>
-                            </div>
-                            <p class="font-bold text-lg" x-text="formatPrice((item.applied_price || item.price) * item.quantity)"></p>
-                        </div>
-                    </template>
-
-                    <!-- Cart Upsells -->
-                    <div x-show="getCartUpsells().length > 0" class="bg-green-50 border border-green-200 rounded-xl p-4">
-                        <h4 class="font-semibold text-green-800 mb-3">أضف لطلبك واستفد من العروض</h4>
-                        <div class="grid grid-cols-2 gap-3">
-                            <template x-for="upsell in getCartUpsells()" :key="upsell.product.id">
-                                <div class="bg-white p-3 rounded-lg flex items-center gap-3">
-                                    <img :src="upsell.product.image" class="w-12 h-12 rounded object-cover">
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium line-clamp-1" x-text="upsell.product.name"></p>
-                                        <p class="text-green-600 font-bold text-sm" x-text="formatPrice(upsell.discounted_price || upsell.product.price)"></p>
-                                    </div>
-                                    <button @click="addToCart(upsell.product, 1, upsell.discounted_price)" class="bg-green-600 text-white p-1 rounded">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Summary -->
-                <div class="bg-white rounded-xl p-6 shadow-sm h-fit sticky top-24">
-                    <h3 class="font-bold text-lg mb-4">ملخص الطلب</h3>
-                    <div class="space-y-3 mb-6">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">المجموع الفرعي</span>
-                            <span class="font-medium" x-text="formatPrice(cartSubtotal)"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">التوصيل</span>
-                            <span class="font-medium" x-text="shippingCost ? formatPrice(shippingCost) : 'يحدد لاحقاً'"></span>
-                        </div>
-                        <div class="border-t pt-3 flex justify-between">
-                            <span class="font-bold">الإجمالي</span>
-                            <span class="font-bold text-xl text-blue-600" x-text="formatPrice(cartSubtotal + (shippingCost || 0))"></span>
-                        </div>
-                    </div>
-                    <button @click="navigateTo('checkout')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition">
-                        متابعة الطلب
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Downsell Modal -->
-        <div x-show="showDownsellModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="modal-overlay absolute inset-0 bg-black/50" @click="showDownsellModal = false"></div>
-            <div class="relative bg-white rounded-2xl max-w-md w-full p-6" @click.stop>
-                <h3 class="text-xl font-bold mb-4">انتظر! عرض خاص لك</h3>
-                <div x-show="downsellProduct" class="flex items-center gap-4 bg-yellow-50 p-4 rounded-xl mb-4">
-                    <img :src="downsellProduct?.image" class="w-20 h-20 rounded-lg object-cover">
-                    <div>
-                        <p class="font-semibold" x-text="downsellProduct?.name"></p>
-                        <p class="text-green-600 font-bold" x-text="formatPrice(downsellProduct?.discounted_price || downsellProduct?.price)"></p>
-                        <p class="text-sm text-gray-500">بدلاً من المنتج المحذوف</p>
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <button @click="acceptDownsell()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700">نعم، أريده!</button>
-                    <button @click="showDownsellModal = false" class="flex-1 bg-gray-200 py-2 rounded-lg font-semibold hover:bg-gray-300">لا شكراً</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Checkout Page -->
-        <div x-show="currentPage === 'checkout'" x-cloak>
-            <h1 class="text-2xl font-bold mb-6">إتمام الطلب</h1>
-            
-            <div class="grid lg:grid-cols-3 gap-8">
-                <!-- Checkout Form -->
-                <div class="lg:col-span-2">
-                    <form @submit.prevent="submitOrder()" class="bg-white rounded-xl p-6 shadow-sm space-y-4">
-                        <h3 class="font-bold text-lg mb-4">معلومات التوصيل</h3>
-                        
-                        <div>
-                            <label class="block text-sm font-medium mb-1">الاسم الكامل <span class="text-red-500">*</span></label>
-                            <input type="text" x-model="checkoutForm.full_name" required class="w-full px-4 py-2 border rounded-lg" :class="formErrors.full_name && 'border-red-500'">
-                            <p x-show="formErrors.full_name" class="text-red-500 text-sm mt-1" x-text="formErrors.full_name"></p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-1">رقم الهاتف <span class="text-red-500">*</span></label>
-                            <input type="tel" x-model="checkoutForm.phone" required placeholder="05xxxxxxxx" class="w-full px-4 py-2 border rounded-lg" :class="formErrors.phone && 'border-red-500'" dir="ltr">
-                            <p x-show="formErrors.phone" class="text-red-500 text-sm mt-1" x-text="formErrors.phone"></p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-1">الولاية <span class="text-red-500">*</span></label>
-                            <select x-model="checkoutForm.wilaya" @change="updateShipping()" required class="w-full px-4 py-2 border rounded-lg" :class="formErrors.wilaya && 'border-red-500'">
-                                <option value="">اختر الولاية</option>
-                                <template x-for="wilaya in wilayas" :key="wilaya.id">
-                                    <option :value="wilaya.id" x-text="wilaya.code + ' - ' + wilaya.name"></option>
-                                </template>
-                            </select>
-                            <p x-show="formErrors.wilaya" class="text-red-500 text-sm mt-1" x-text="formErrors.wilaya"></p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-1">البلدية</label>
-                            <input type="text" x-model="checkoutForm.commune" class="w-full px-4 py-2 border rounded-lg">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-1">نوع التوصيل <span class="text-red-500">*</span></label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" @click="checkoutForm.delivery_type = 'office'; updateShipping()" class="p-4 border-2 rounded-xl text-center transition" :class="checkoutForm.delivery_type === 'office' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'" :disabled="!isDeliveryTypeAvailable('office')">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                    </svg>
-                                    <p class="font-medium">استلام من المكتب</p>
-                                    <p class="text-sm text-gray-500" x-text="getShippingRate('office')"></p>
-                                </button>
-                                <button type="button" @click="checkoutForm.delivery_type = 'home'; updateShipping()" class="p-4 border-2 rounded-xl text-center transition" :class="checkoutForm.delivery_type === 'home' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'" :disabled="!isDeliveryTypeAvailable('home')">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                                    </svg>
-                                    <p class="font-medium">توصيل للمنزل</p>
-                                    <p class="text-sm text-gray-500" x-text="getShippingRate('home')"></p>
-                                </button>
-                            </div>
-                            <p x-show="formErrors.delivery_type" class="text-red-500 text-sm mt-1" x-text="formErrors.delivery_type"></p>
-                        </div>
-
-                        <div x-show="checkoutForm.delivery_type === 'home'">
-                            <label class="block text-sm font-medium mb-1">العنوان <span class="text-red-500">*</span></label>
-                            <textarea x-model="checkoutForm.address" rows="2" class="w-full px-4 py-2 border rounded-lg" :class="formErrors.address && 'border-red-500'" placeholder="الحي، الشارع، رقم العمارة..."></textarea>
-                            <p x-show="formErrors.address" class="text-red-500 text-sm mt-1" x-text="formErrors.address"></p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium mb-1">ملاحظات (اختياري)</label>
-                            <textarea x-model="checkoutForm.note" rows="2" class="w-full px-4 py-2 border rounded-lg" placeholder="أي ملاحظات إضافية..."></textarea>
-                        </div>
-
-                        <!-- Turnstile Widget -->
-                        <div class="cf-turnstile" :data-sitekey="config.turnstileSiteKey" data-callback="onTurnstileSuccess"></div>
-
-                        <button type="submit" :disabled="isSubmitting" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span x-show="!isSubmitting">تأكيد الطلب (الدفع عند الاستلام)</span>
-                            <span x-show="isSubmitting">جاري إرسال الطلب...</span>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Order Summary -->
-                <div class="bg-white rounded-xl p-6 shadow-sm h-fit sticky top-24">
-                    <h3 class="font-bold text-lg mb-4">ملخص الطلب</h3>
-                    <div class="space-y-3 mb-4">
-                        <template x-for="item in cart" :key="item.cartItemId || item.id">
-                            <div class="flex justify-between text-sm">
-                                <div>
-                                    <span x-text="item.name"></span> × <span x-text="item.quantity"></span>
-                                    <div x-show="item.options?.size || item.options?.color" class="text-xs text-gray-500">
-                                        <span x-show="item.options?.size" x-text="'المقاس: ' + item.options?.size"></span>
-                                        <span x-show="item.options?.color" x-text="' - اللون: ' + item.options?.color"></span>
-                                    </div>
-                                </div>
-                                <span x-text="formatPrice((item.applied_price || item.price) * item.quantity)"></span>
-                            </div>
-                        </template>
-                    </div>
-                    <div class="border-t pt-3 space-y-2">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">المجموع الفرعي</span>
-                            <span x-text="formatPrice(cartSubtotal)"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">التوصيل</span>
-                            <span x-text="shippingCost ? formatPrice(shippingCost) : 'يحدد لاحقاً'"></span>
-                        </div>
-                        <div class="flex justify-between font-bold text-lg pt-2 border-t">
-                            <span>الإجمالي</span>
-                            <span class="text-blue-600" x-text="formatPrice(cartSubtotal + (shippingCost || 0))"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Order Success Page -->
-        <div x-show="currentPage === 'order-success'" x-cloak class="text-center py-16">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-green-600 mb-4">تم استلام طلبك بنجاح!</h1>
-            <p class="text-gray-600 mb-2">رقم الطلب: <span class="font-bold" x-text="lastOrderId"></span></p>
-            <p class="text-gray-600 mb-8">سيتم التواصل معك قريباً لتأكيد الطلب</p>
-            <button @click="navigateTo('home'); lastOrderId = null" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700">
-                متابعة التسوق
-            </button>
-        </div>
-
-        <!-- Admin Login -->
-        <div x-show="currentPage === 'admin-login'" x-cloak class="max-w-md mx-auto">
-            <div class="bg-white rounded-2xl p-8 shadow-lg">
-                <h1 class="text-2xl font-bold text-center mb-6">تسجيل دخول المسؤول</h1>
-                <form @submit.prevent="adminLogin()">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
-                        <input type="email" x-model="adminCredentials.email" required class="w-full px-4 py-2 border rounded-lg" dir="ltr">
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium mb-1">كلمة المرور</label>
-                        <input type="password" x-model="adminCredentials.password" required class="w-full px-4 py-2 border rounded-lg" dir="ltr">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">دخول</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Admin Dashboard -->
-        <div x-show="currentPage.startsWith('admin-') && currentPage !== 'admin-login' && isAdminLoggedIn" x-cloak>
-            <div class="flex gap-6">
-                <!-- Sidebar -->
-                <div class="w-64 bg-white rounded-xl shadow-sm p-4 h-fit sticky top-24">
-                    <div class="mb-6 pb-4 border-b">
-                        <p class="font-bold text-lg">لوحة التحكم</p>
-                        <p class="text-sm text-gray-500" x-text="adminUser?.role === 'admin' ? 'مسؤول' : 'دعم'"></p>
-                    </div>
-                    <nav class="space-y-1">
-                        <button @click="currentPage = 'admin-dashboard'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-dashboard' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">📊 لوحة المعلومات</button>
-                        <button @click="currentPage = 'admin-orders'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-orders' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">📦 الطلبات</button>
-                        <button @click="currentPage = 'admin-products'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-products' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">🛍️ المنتجات</button>
-                        <button @click="currentPage = 'admin-shipping'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-shipping' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">🚚 أسعار التوصيل</button>
-                        <button @click="currentPage = 'admin-reviews'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-reviews' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">⭐ التقييمات</button>
-                        <button @click="currentPage = 'admin-carts'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-carts' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">🛒 السلات المتروكة</button>
-                        <button @click="currentPage = 'admin-upsells'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-upsells' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">💰 العروض الإضافية</button>
-                        <button @click="currentPage = 'admin-settings'" x-show="adminUser?.role === 'admin'" class="w-full text-right px-4 py-2 rounded-lg transition" :class="currentPage === 'admin-settings' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'">⚙️ الإعدادات</button>
-                        <button @click="adminLogout()" class="w-full text-right px-4 py-2 rounded-lg text-red-600 hover:bg-red-50">🚪 تسجيل الخروج</button>
-                    </nav>
-                </div>
-
-                <!-- Content -->
-                <div class="flex-1">
-                    <!-- Dashboard Stats -->
-                    <div x-show="currentPage === 'admin-dashboard'">
-                        <h1 class="text-2xl font-bold mb-6">لوحة المعلومات</h1>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <div class="bg-white rounded-xl p-4 shadow-sm">
-                                <p class="text-gray-500 text-sm">طلبات اليوم</p>
-                                <p class="text-2xl font-bold" x-text="adminStats.todayOrders"></p>
-                            </div>
-                            <div class="bg-white rounded-xl p-4 shadow-sm">
-                                <p class="text-gray-500 text-sm">طلبات جديدة</p>
-                                <p class="text-2xl font-bold text-blue-600" x-text="adminStats.newOrders"></p>
-                            </div>
-                            <div class="bg-white rounded-xl p-4 shadow-sm">
-                                <p class="text-gray-500 text-sm">إيرادات اليوم</p>
-                                <p class="text-2xl font-bold text-green-600" x-text="formatPrice(adminStats.todayRevenue)"></p>
-                            </div>
-                            <div class="bg-white rounded-xl p-4 shadow-sm">
-                                <p class="text-gray-500 text-sm">نسبة الرفض</p>
-                                <p class="text-2xl font-bold text-red-600" x-text="adminStats.refusalRate + '%'"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Products Management -->
-                    <div x-show="currentPage === 'admin-products'">
-                        <div class="flex items-center justify-between mb-6">
-                            <h1 class="text-2xl font-bold">المنتجات</h1>
-                            <button @click="openProductForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ إضافة منتج</button>
-                        </div>
-
-                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                            <table class="w-full">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">المنتج</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">الفئة</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">السعر</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">المقاسات</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">الألوان</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">الحالة</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">إجراءات</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y">
-                                    <template x-for="product in products" :key="product.id">
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-3">
-                                                <div class="flex items-center gap-3">
-                                                    <img :src="product.image" class="w-12 h-12 rounded-lg object-cover">
-                                                    <span x-text="product.name"></span>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3" x-text="getCategoryName(product.category_id)"></td>
-                                            <td class="px-4 py-3 font-bold" x-text="formatPrice(product.price)"></td>
-                                            <td class="px-4 py-3 text-sm" x-text="product.sizes?.join(', ') || '-'"></td>
-                                            <td class="px-4 py-3 text-sm" x-text="product.colors?.join(', ') || '-'"></td>
-                                            <td class="px-4 py-3">
-                                                <span class="px-2 py-1 rounded text-xs" :class="product.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'" x-text="product.is_active ? 'نشط' : 'معطل'"></span>
-                                            </td>
-                                            <td class="px-4 py-3 space-x-2 space-x-reverse">
-                                                <button @click="editProduct(product)" class="text-blue-600 hover:underline text-sm">تعديل</button>
-                                                <button @click="toggleProductStatus(product)" class="text-yellow-600 hover:underline text-sm" x-text="product.is_active ? 'تعطيل' : 'تفعيل'"></button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Product Form Modal (Enhanced with sizes, colors, multiple images) -->
-                    <div x-show="showProductForm" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div class="modal-overlay absolute inset-0 bg-black/50" @click="showProductForm = false"></div>
-                        <div class="relative bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6" @click.stop>
-                            <h2 class="text-xl font-bold mb-4" x-text="editingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'"></h2>
-                            
-                            <form @submit.prevent="saveProduct()" class="space-y-4">
-                                <div class="grid md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">اسم المنتج <span class="text-red-500">*</span></label>
-                                        <input type="text" x-model="productForm.name" required class="w-full px-4 py-2 border rounded-lg">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">الفئة <span class="text-red-500">*</span></label>
-                                        <select x-model="productForm.category_id" required class="w-full px-4 py-2 border rounded-lg">
-                                            <template x-for="cat in categories" :key="cat.id">
-                                                <option :value="cat.id" x-text="cat.name"></option>
-                                            </template>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="grid md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">السعر (د.ج) <span class="text-red-500">*</span></label>
-                                        <input type="number" x-model="productForm.price" required class="w-full px-4 py-2 border rounded-lg">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">السعر الأصلي (اختياري)</label>
-                                        <input type="number" x-model="productForm.original_price" class="w-full px-4 py-2 border rounded-lg">
-                                    </div>
-                                </div>
-
-                                <!-- Description Field -->
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">وصف المنتج</label>
-                                    <textarea x-model="productForm.description" rows="4" maxlength="5000" class="w-full px-4 py-2 border rounded-lg" placeholder="اكتب وصفاً تفصيلياً للمنتج..."></textarea>
-                                    <p class="text-xs text-gray-500 mt-1"><span x-text="(productForm.description || '').length"></span>/5000 حرف</p>
-                                </div>
-
-                                <!-- Sizes -->
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">المقاسات المتاحة</label>
-                                    <div class="flex flex-wrap gap-2 mb-2">
-                                        <template x-for="(size, index) in productForm.sizes" :key="index">
-                                            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                                                <span x-text="size"></span>
-                                                <button type="button" @click="productForm.sizes.splice(index, 1)" class="hover:text-red-600">&times;</button>
-                                            </span>
-                                        </template>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <input type="text" x-model="newSizeInput" @keydown.enter.prevent="addSize()" placeholder="أضف مقاس (مثل: S, M, L)" class="flex-1 px-3 py-2 border rounded-lg text-sm">
-                                        <button type="button" @click="addSize()" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">إضافة</button>
-                                    </div>
-                                </div>
-
-                                <!-- Colors -->
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">الألوان المتاحة</label>
-                                    <div class="flex flex-wrap gap-2 mb-2">
-                                        <template x-for="(color, index) in productForm.colors" :key="index">
-                                            <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                                                <span x-text="color"></span>
-                                                <button type="button" @click="productForm.colors.splice(index, 1)" class="hover:text-red-600">&times;</button>
-                                            </span>
-                                        </template>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <input type="text" x-model="newColorInput" @keydown.enter.prevent="addColor()" placeholder="أضف لون (مثل: أسود، أبيض)" class="flex-1 px-3 py-2 border rounded-lg text-sm">
-                                        <button type="button" @click="addColor()" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">إضافة</button>
-                                    </div>
-                                </div>
-
-                                <!-- Multiple Images -->
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">صور المنتج</label>
-                                    <div class="grid grid-cols-4 gap-3 mb-3">
-                                        <template x-for="(img, index) in productForm.images" :key="index">
-                                            <div class="image-grid-item aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                                                <img :src="img" class="w-full h-full object-cover">
-                                                <button type="button" @click="removeProductImage(index)" class="delete-btn bg-red-500 text-white p-1 rounded-full">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </template>
-                                        <!-- Add Image Button -->
-                                        <label class="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                            </svg>
-                                            <span class="text-sm text-gray-500 mt-1">إضافة صورة</span>
-                                            <input type="file" @change="handleImageUpload($event)" accept="image/*" class="hidden" multiple>
-                                        </label>
-                                    </div>
-                                    <p class="text-xs text-gray-500">سيتم رفع الصور إلى Cloudflare Images بشكل آمن عبر الخادم</p>
-                                </div>
-
-                                <div class="flex items-center gap-2">
-                                    <input type="checkbox" x-model="productForm.is_active" id="is_active" class="rounded">
-                                    <label for="is_active">المنتج نشط</label>
-                                </div>
-
-                                <div class="flex gap-3 pt-4">
-                                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700">حفظ</button>
-                                    <button type="button" @click="showProductForm = false" class="flex-1 bg-gray-200 py-2 rounded-lg font-semibold hover:bg-gray-300">إلغاء</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Shipping Settings -->
-                    <div x-show="currentPage === 'admin-shipping'">
-                        <div class="flex items-center justify-between mb-6">
-                            <h1 class="text-2xl font-bold">أسعار التوصيل (58 ولاية)</h1>
-                            <div class="flex gap-2">
-                                <button @click="exportShippingCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">تصدير CSV</button>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-xl shadow-sm overflow-hidden max-h-[70vh] overflow-y-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-50 sticky top-0">
-                                    <tr>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">الكود</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">الولاية</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">استلام من المكتب</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">توصيل للمنزل</th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">إجراءات</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y">
-                                    <template x-for="rate in shippingRates" :key="rate.wilaya_id">
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-3" x-text="getWilayaCode(rate.wilaya_id)"></td>
-                                            <td class="px-4 py-3" x-text="getWilayaName(rate.wilaya_id)"></td>
-                                            <td class="px-4 py-3">
-                                                <div class="flex items-center gap-2">
-                                                    <input type="number" x-model="rate.office_price" class="w-20 px-2 py-1 border rounded text-sm" :disabled="!rate.office_enabled">
-                                                    <input type="checkbox" x-model="rate.office_enabled" class="rounded">
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <div class="flex items-center gap-2">
-                                                    <input type="number" x-model="rate.home_price" class="w-20 px-2 py-1 border rounded text-sm" :disabled="!rate.home_enabled">
-                                                    <input type="checkbox" x-model="rate.home_enabled" class="rounded">
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <button @click="saveShippingRate(rate)" class="text-blue-600 hover:underline text-sm">حفظ</button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Other Admin Sections (Orders, Reviews, etc.) -->
-                    <div x-show="currentPage === 'admin-orders'">
-                        <h1 class="text-2xl font-bold mb-6">الطلبات</h1>
-                        <!-- Orders table content here -->
-                    </div>
-
-                    <div x-show="currentPage === 'admin-reviews'">
-                        <h1 class="text-2xl font-bold mb-6">إدارة التقييمات</h1>
-                    </div>
-
-                    <div x-show="currentPage === 'admin-settings'">
-                        <h1 class="text-2xl font-bold mb-6">الإعدادات</h1>
-                        
-                        <!-- Supabase Config Info -->
-                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-                            <h3 class="font-bold text-blue-800 mb-2">إعدادات Supabase</h3>
-                            <p class="text-sm text-blue-700">تأكد من إعداد متغيرات البيئة التالية في ملف <code class="bg-blue-100 px-1 rounded">.env.local</code>:</p>
-                            <ul class="text-sm text-blue-700 mt-2 list-disc list-inside">
-                                <li>NEXT_PUBLIC_SUPABASE_URL</li>
-                                <li>NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
-                                <li>SUPABASE_SERVICE_ROLE_KEY (للخادم فقط)</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white mt-16" x-show="!currentPage.startsWith('admin')">
-        <div class="max-w-7xl mx-auto px-4 py-12">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div>
-                    <h3 class="text-xl font-bold mb-4">متجرنا</h3>
-                    <p class="text-gray-400">أفضل المنتجات بأسعار تنافسية مع توصيل لكل ولايات الجزائر (58 ولاية).</p>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-4">روابط سريعة</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" @click.prevent="navigateTo('home')" class="hover:text-white">الرئيسية</a></li>
-                        <li><a href="#" class="hover:text-white">اتصل بنا</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-4">تواصل معنا</h4>
-                    <div class="flex gap-4">
-                        <a :href="settings.facebook_url" class="hover:text-blue-400">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18.77,7.46H14.5v-1.9c0-.9.6-1.1,1-1.1h3V.5h-4.33C10.24.5,9.5,3.44,9.5,5.32v2.15h-3v4h3v12h5v-12h3.85l.42-4Z"/></svg>
-                        </a>
-                        <a :href="settings.instagram_url" class="hover:text-pink-400">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12,2.16c3.2,0,3.58,0,4.85.07,3.25.15,4.77,1.69,4.92,4.92.06,1.27.07,1.65.07,4.85s0,3.58-.07,4.85c-.15,3.23-1.66,4.77-4.92,4.92-1.27.06-1.65.07-4.85.07s-3.58,0-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.65-.07-4.85s0-3.58.07-4.85C2.38,3.92,3.9,2.38,7.15,2.23,8.42,2.18,8.8,2.16,12,2.16ZM12,0C8.74,0,8.33,0,7.05.07c-4.27.2-6.78,2.71-7,7C0,8.33,0,8.74,0,12s0,3.67.07,4.95c.2,4.27,2.71,6.78,7,7C8.33,24,8.74,24,12,24s3.67,0,4.95-.07c4.27-.2,6.78-2.71,7-7C24,15.67,24,15.26,24,12s0-3.67-.07-4.95c-.2-4.27-2.71-6.78-7-7C15.67,0,15.26,0,12,0Zm0,5.84A6.16,6.16,0,1,0,18.16,12,6.16,6.16,0,0,0,12,5.84ZM12,16a4,4,0,1,1,4-4A4,4,0,0,1,12,16ZM18.41,4.15a1.44,1.44,0,1,0,1.44,1.44A1.44,1.44,0,0,0,18.41,4.15Z"/></svg>
-                        </a>
-                    </div>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-4">طرق الدفع</h4>
-                    <p class="text-gray-400">الدفع عند الاستلام (COD)</p>
-                </div>
-            </div>
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-                <p>© 2024 متجرنا - جميع الحقوق محفوظة</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Alpine.js -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    <script>
-        // Turnstile callback
-        window.turnstileToken = null;
-        function onTurnstileSuccess(token) {
-            window.turnstileToken = token;
-        }
-
-        function app() {
-            return {
-                // ===== CONFIGURATION (from environment) =====
-                config: {
-                    supabaseUrl: '', // Set from NEXT_PUBLIC_SUPABASE_URL
-                    supabaseAnonKey: '', // Set from NEXT_PUBLIC_SUPABASE_ANON_KEY
-                    turnstileSiteKey: '0x4AAAAAAXXXXXXXXXXXXXX' // Set from env
-                },
-
-                // ===== STATE =====
-                currentPage: 'home',
-                currentProductSlug: null,
-                showConsentBanner: true,
-                consentGiven: false,
-                toasts: [],
-                searchQuery: '',
-                selectedCategory: null,
-                pageTitle: 'متجرنا - التسوق الإلكتروني في الجزائر',
-                
-                // Product Page State
-                selectedProduct: null,
-                isLoadingProduct: false,
-                selectedImageIndex: 0,
-                productQuantity: 1,
-                selectedSize: null,
-                selectedColor: null,
-                isAddingToCart: false,
-                
-                // Cart
-                cart: [],
-                shippingCost: null,
-                
-                // Checkout
-                checkoutForm: {
-                    full_name: '',
-                    phone: '',
-                    wilaya: '',
-                    commune: '',
-                    delivery_type: '',
-                    address: '',
-                    note: ''
-                },
-                formErrors: {},
-                isSubmitting: false,
-                lastOrderId: null,
-                
-                // Downsell
-                showDownsellModal: false,
-                downsellProduct: null,
-                itemToRemove: null,
-                
-                // Reviews
-                showReviewForm: false,
-                newReview: { name: '', rating: 5, comment: '' },
-                
-                // Admin
-                isAdminLoggedIn: false,
-                adminUser: null,
-                adminCredentials: { email: '', password: '' },
-                showProductForm: false,
-                editingProduct: null,
-                productForm: { 
-                    name: '', 
-                    category_id: '', 
-                    price: '', 
-                    original_price: '', 
-                    description: '', 
-                    is_active: true,
-                    sizes: [],
-                    colors: [],
-                    images: []
-                },
-                newSizeInput: '',
-                newColorInput: '',
-                
-                // Data
-                products: [],
-                filteredProducts: [],
-                categories: [],
-                wilayas: [],
-                shippingRates: [],
-                reviews: [],
-                orders: [],
-                abandonedCarts: [],
-                upsellRules: [],
-                settings: {
-                    abandoned_cart_threshold: 60,
-                    purchase_event_trigger: 'confirmed',
-                    facebook_url: '',
-                    instagram_url: '',
-                    tiktok_url: '',
-                    ga4_id: '',
-                    meta_pixel_id: '',
-                    consent_required: true
-                },
-                adminStats: {
-                    todayOrders: 0,
-                    newOrders: 0,
-                    todayRevenue: 0,
-                    refusalRate: 0,
-                    ordersByStatus: {},
-                    topProducts: []
-                },
-                
-                orderStatuses: [
-                    { value: 'new', label: 'جديد' },
-                    { value: 'pending_confirmation', label: 'قيد التأكيد' },
-                    { value: 'confirmed', label: 'مؤكد' },
-                    { value: 'sent_to_carrier', label: 'أُرسل للناقل' },
-                    { value: 'out_for_delivery', label: 'قيد التوصيل' },
-                    { value: 'delivered', label: 'تم التسليم' },
-                    { value: 'refused', label: 'مرفوض' },
-                    { value: 'returned', label: 'مرتجع' },
-                    { value: 'cancelled', label: 'ملغي' }
-                ],
-
-                init() {
-                    this.loadData();
-                    this.loadCart();
-                    this.checkConsent();
-                    this.handleRouting();
-                    
-                    // Listen for hash changes
-                    window.addEventListener('hashchange', () => this.handleRouting());
-                    
-                    // Exit intent for downsell
-                    document.addEventListener('mouseleave', (e) => {
-                        if (e.clientY < 0 && this.cart.length > 0 && !this.showDownsellModal) {
-                            this.showExitIntentDownsell();
-                        }
-                    });
-                },
-
-                // ===== ROUTING =====
-                handleRouting() {
-                    const hash = window.location.hash;
-                    
-                    if (hash.startsWith('#/product/')) {
-                        const slugOrId = hash.replace('#/product/', '');
-                        this.loadProductPage(slugOrId);
-                    } else if (hash === '#/cart') {
-                        this.currentPage = 'cart';
-                    } else if (hash === '#/checkout') {
-                        this.currentPage = 'checkout';
-                    } else {
-                        this.currentPage = 'home';
-                    }
-                },
-
-                navigateTo(page, param = null) {
-                    if (page === 'product' && param) {
-                        window.location.hash = `/product/${param}`;
-                    } else if (page === 'cart') {
-                        window.location.hash = '/cart';
-                        this.currentPage = 'cart';
-                    } else if (page === 'checkout') {
-                        window.location.hash = '/checkout';
-                        this.currentPage = 'checkout';
-                    } else if (page === 'home') {
-                        window.location.hash = '';
-                        this.currentPage = 'home';
-                        this.selectedProduct = null;
-                    } else {
-                        this.currentPage = page;
-                    }
-                },
-
-                async loadProductPage(slugOrId) {
-                    this.currentPage = 'product';
-                    this.isLoadingProduct = true;
-                    this.selectedProduct = null;
-                    this.selectedImageIndex = 0;
-                    this.productQuantity = 1;
-                    this.selectedSize = null;
-                    this.selectedColor = null;
-                    
-                    try {
-                        // In production: Fetch single product from Supabase
-                        // const { data } = await supabase.from('products').select('*').or(`slug.eq.${slugOrId},id.eq.${slugOrId}`).single();
-                        
-                        // Demo: Find in local data
-                        await new Promise(r => setTimeout(r, 300)); // Simulate loading
-                        
-                        const product = this.products.find(p => 
-                            p.slug === slugOrId || p.id.toString() === slugOrId
-                        );
-                        
-                        if (product) {
-                            this.selectedProduct = product;
-                            // Set page title for SEO
-                            this.pageTitle = `${product.name} | متجرنا`;
-                            document.title = this.pageTitle;
-                            
-                            // Update meta description
-                            let metaDesc = document.querySelector('meta[name="description"]');
-                            if (metaDesc && product.description) {
-                                metaDesc.setAttribute('content', product.description.substring(0, 160));
-                            }
-                            
-                            // Pre-select first size/color if available
-                            if (product.sizes?.length) this.selectedSize = product.sizes[0];
-                            if (product.colors?.length) this.selectedColor = product.colors[0];
-                            
-                            // Track view
-                            this.trackEvent('ViewContent', { 
-                                content_id: product.id, 
-                                content_name: product.name, 
-                                value: product.price, 
-                                currency: 'DZD' 
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error loading product:', error);
-                    } finally {
-                        this.isLoadingProduct = false;
-                    }
-                },
-
-                loadData() {
-                    // Categories
-                    this.categories = [
-                        { id: 1, name: 'إلكترونيات' },
-                        { id: 2, name: 'ملابس' },
-                        { id: 3, name: 'منزل وحديقة' },
-                        { id: 4, name: 'جمال وصحة' }
-                    ];
-
-                    // Products with sizes, colors, description
-                    this.products = [
-                        { 
-                            id: 1, 
-                            slug: 'wireless-bluetooth-headphones',
-                            name: 'سماعات بلوتوث لاسلكية', 
-                            price: 4500, 
-                            original_price: 6000, 
-                            category_id: 1, 
-                            image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400', 
-                            images: [
-                                'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-                                'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=400'
-                            ], 
-                            description: 'سماعات بلوتوث عالية الجودة مع عزل للضوضاء.\n\nمميزات:\n- بطارية تدوم 20 ساعة\n- صوت استيريو فائق الجودة\n- ميكروفون مدمج للمكالمات\n- تصميم مريح للاستخدام الطويل', 
-                            rating: 4.5, 
-                            reviews_count: 23, 
-                            is_active: true,
-                            sizes: [],
-                            colors: ['أسود', 'أبيض', 'أزرق']
-                        },
-                        { 
-                            id: 2, 
-                            slug: 'smart-sport-watch',
-                            name: 'ساعة ذكية رياضية', 
-                            price: 8900, 
-                            category_id: 1, 
-                            image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-                            images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400'],
-                            description: 'ساعة ذكية مع تتبع اللياقة البدنية ومقاومة للماء.\n\nالمواصفات:\n- شاشة AMOLED\n- تتبع معدل ضربات القلب\n- GPS مدمج\n- مقاومة للماء حتى 50 متر', 
-                            rating: 4.2, 
-                            reviews_count: 15, 
-                            is_active: true,
-                            sizes: [],
-                            colors: ['أسود', 'فضي', 'ذهبي']
-                        },
-                        { 
-                            id: 3, 
-                            slug: 'modern-backpack',
-                            name: 'حقيبة ظهر عصرية', 
-                            price: 3200, 
-                            original_price: 4000, 
-                            category_id: 2, 
-                            image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
-                            images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400'],
-                            description: 'حقيبة ظهر أنيقة ومتينة مناسبة للعمل والسفر.', 
-                            rating: 4.7, 
-                            reviews_count: 31, 
-                            is_active: true,
-                            sizes: ['صغير', 'وسط', 'كبير'],
-                            colors: ['أسود', 'بني', 'رمادي']
-                        },
-                        { 
-                            id: 4, 
-                            slug: 'cooking-set',
-                            name: 'طقم أواني طبخ', 
-                            price: 12500, 
-                            category_id: 3, 
-                            image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
-                            images: ['https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400'],
-                            description: 'طقم أواني طبخ احترافي من الستانلس ستيل.', 
-                            rating: 4.8, 
-                            reviews_count: 42, 
-                            is_active: true,
-                            sizes: [],
-                            colors: []
-                        },
-                        { 
-                            id: 5, 
-                            slug: 'moisturizing-cream',
-                            name: 'كريم مرطب للبشرة', 
-                            price: 1800, 
-                            category_id: 4, 
-                            image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400',
-                            images: ['https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400'],
-                            description: 'كريم مرطب طبيعي للبشرة مناسب لجميع أنواع البشرة.', 
-                            rating: 4.3, 
-                            reviews_count: 18, 
-                            is_active: true,
-                            sizes: ['50ml', '100ml', '200ml'],
-                            colors: []
-                        },
-                        { 
-                            id: 6, 
-                            slug: 'fast-charger',
-                            name: 'شاحن سريع للهاتف', 
-                            price: 2500, 
-                            category_id: 1, 
-                            image: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400',
-                            images: ['https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400'],
-                            description: 'شاحن سريع 65 واط يدعم جميع الهواتف الذكية.', 
-                            rating: 4.6, 
-                            reviews_count: 27, 
-                            is_active: true,
-                            sizes: [],
-                            colors: ['أبيض', 'أسود']
-                        }
-                    ];
-                    this.filteredProducts = [...this.products];
-
-                    // 58 Wilayas of Algeria (Updated)
-                    this.wilayas = [
-                        { id: 1, code: '01', name: 'أدرار' },
-                        { id: 2, code: '02', name: 'الشلف' },
-                        { id: 3, code: '03', name: 'الأغواط' },
-                        { id: 4, code: '04', name: 'أم البواقي' },
-                        { id: 5, code: '05', name: 'باتنة' },
-                        { id: 6, code: '06', name: 'بجاية' },
-                        { id: 7, code: '07', name: 'بسكرة' },
-                        { id: 8, code: '08', name: 'بشار' },
-                        { id: 9, code: '09', name: 'البليدة' },
-                        { id: 10, code: '10', name: 'البويرة' },
-                        { id: 11, code: '11', name: 'تمنراست' },
-                        { id: 12, code: '12', name: 'تبسة' },
-                        { id: 13, code: '13', name: 'تلمسان' },
-                        { id: 14, code: '14', name: 'تيارت' },
-                        { id: 15, code: '15', name: 'تيزي وزو' },
-                        { id: 16, code: '16', name: 'الجزائر' },
-                        { id: 17, code: '17', name: 'الجلفة' },
-                        { id: 18, code: '18', name: 'جيجل' },
-                        { id: 19, code: '19', name: 'سطيف' },
-                        { id: 20, code: '20', name: 'سعيدة' },
-                        { id: 21, code: '21', name: 'سكيكدة' },
-                        { id: 22, code: '22', name: 'سيدي بلعباس' },
-                        { id: 23, code: '23', name: 'عنابة' },
-                        { id: 24, code: '24', name: 'قالمة' },
-                        { id: 25, code: '25', name: 'قسنطينة' },
-                        { id: 26, code: '26', name: 'المدية' },
-                        { id: 27, code: '27', name: 'مستغانم' },
-                        { id: 28, code: '28', name: 'المسيلة' },
-                        { id: 29, code: '29', name: 'معسكر' },
-                        { id: 30, code: '30', name: 'ورقلة' },
-                        { id: 31, code: '31', name: 'وهران' },
-                        { id: 32, code: '32', name: 'البيض' },
-                        { id: 33, code: '33', name: 'إليزي' },
-                        { id: 34, code: '34', name: 'برج بوعريريج' },
-                        { id: 35, code: '35', name: 'بومرداس' },
-                        { id: 36, code: '36', name: 'الطارف' },
-                        { id: 37, code: '37', name: 'تندوف' },
-                        { id: 38, code: '38', name: 'تيسمسيلت' },
-                        { id: 39, code: '39', name: 'الوادي' },
-                        { id: 40, code: '40', name: 'خنشلة' },
-                        { id: 41, code: '41', name: 'سوق أهراس' },
-                        { id: 42, code: '42', name: 'تيبازة' },
-                        { id: 43, code: '43', name: 'ميلة' },
-                        { id: 44, code: '44', name: 'عين الدفلى' },
-                        { id: 45, code: '45', name: 'النعامة' },
-                        { id: 46, code: '46', name: 'عين تموشنت' },
-                        { id: 47, code: '47', name: 'غرداية' },
-                        { id: 48, code: '48', name: 'غليزان' },
-                        // 10 New Wilayas (2019)
-                        { id: 49, code: '49', name: 'المغير' },
-                        { id: 50, code: '50', name: 'المنيعة' },
-                        { id: 51, code: '51', name: 'أولاد جلال' },
-                        { id: 52, code: '52', name: 'برج باجي مختار' },
-                        { id: 53, code: '53', name: 'بني عباس' },
-                        { id: 54, code: '54', name: 'تيميمون' },
-                        { id: 55, code: '55', name: 'توقرت' },
-                        { id: 56, code: '56', name: 'جانت' },
-                        { id: 57, code: '57', name: 'عين صالح' },
-                        { id: 58, code: '58', name: 'عين قزام' }
-                    ];
-
-                    // Shipping rates for all 58 wilayas
-                    this.shippingRates = this.wilayas.map(w => ({
-                        wilaya_id: w.id,
-                        office_price: w.id === 16 ? 400 : (w.id >= 49 ? 700 : 500),
-                        office_enabled: true,
-                        home_price: w.id === 16 ? 600 : (w.id >= 49 ? 1000 : 800),
-                        home_enabled: true
-                    }));
-
-                    // Reviews
-                    this.reviews = [
-                        { id: 1, product_id: 1, name: 'أحمد', rating: 5, comment: 'منتج ممتاز، جودة عالية!', status: 'approved' },
-                        { id: 2, product_id: 1, name: 'سارة', rating: 4, comment: 'جيد جداً، سعر مناسب', status: 'approved' },
-                        { id: 3, product_id: 2, name: 'محمد', rating: 5, comment: 'أفضل ساعة اشتريتها', status: 'pending' }
-                    ];
-
-                    // Upsell rules
-                    this.upsellRules = [
-                        { id: 1, type: 'upsell', trigger_product_id: 1, suggested_product_id: 6, discount_percent: 10 },
-                        { id: 2, type: 'downsell', trigger_product_id: 2, suggested_product_id: 1, discount_percent: 15 }
-                    ];
-
-                    // Admin stats
-                    this.adminStats = {
-                        todayOrders: 5,
-                        newOrders: 3,
-                        todayRevenue: 45000,
-                        refusalRate: 12,
-                        ordersByStatus: { new: 3, confirmed: 5, delivered: 12, refused: 2 },
-                        topProducts: this.products.slice(0, 3).map(p => ({ 
-                            ...p, 
-                            sold: Math.floor(Math.random() * 50) + 10, 
-                            revenue: p.price * (Math.floor(Math.random() * 50) + 10) 
-                        }))
-                    };
-                },
-
-                loadCart() {
-                    const saved = localStorage.getItem('cart');
-                    if (saved) this.cart = JSON.parse(saved);
-                },
-
-                saveCart() {
-                    localStorage.setItem('cart', JSON.stringify(this.cart));
-                },
-
-                checkConsent() {
-                    const consent = localStorage.getItem('consent');
-                    if (consent) {
-                        this.showConsentBanner = false;
-                        this.consentGiven = consent === 'accepted';
-                    }
-                },
-
-                acceptConsent() {
-                    localStorage.setItem('consent', 'accepted');
-                    this.consentGiven = true;
-                    this.showConsentBanner = false;
-                },
-
-                rejectConsent() {
-                    localStorage.setItem('consent', 'rejected');
-                    this.consentGiven = false;
-                    this.showConsentBanner = false;
-                },
-
-                trackEvent(eventName, params = {}) {
-                    if (!this.consentGiven) return;
-                    const eventId = 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    if (window.gtag) gtag('event', eventName, { ...params, event_id: eventId });
-                    if (window.fbq) fbq('track', eventName, params, { eventID: eventId });
-                },
-
-                // ===== PRODUCT FUNCTIONS =====
-                searchProducts() {
-                    this.filterProducts();
-                },
-
-                filterProducts() {
-                    this.filteredProducts = this.products.filter(p => {
-                        const matchesSearch = !this.searchQuery || p.name.includes(this.searchQuery);
-                        const matchesCategory = !this.selectedCategory || p.category_id === this.selectedCategory;
-                        return matchesSearch && matchesCategory && p.is_active;
-                    });
-                },
-
-                scrollToProducts() {
-                    document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-                },
-
-                // ===== CART FUNCTIONS =====
-                addToCart(product, quantity = 1, appliedPrice = null, options = null) {
-                    const opts = options || {
-                        size: this.selectedSize,
-                        color: this.selectedColor
-                    };
-                    
-                    // Create unique cart item ID based on product + options
-                    const cartItemId = `${product.id}_${opts.size || ''}_${opts.color || ''}`;
-                    
-                    const existing = this.cart.find(i => i.cartItemId === cartItemId);
-                    if (existing) {
-                        existing.quantity += quantity;
-                    } else {
-                        this.cart.push({ 
-                            ...product, 
-                            cartItemId,
-                            quantity, 
-                            applied_price: appliedPrice,
-                            options: opts
-                        });
-                    }
-                    this.saveCart();
-                    this.showToast('تمت الإضافة للسلة', 'success');
-                    this.trackEvent('AddToCart', { 
-                        content_id: product.id, 
-                        content_name: product.name, 
-                        value: appliedPrice || product.price, 
-                        currency: 'DZD' 
-                    });
-                },
-
-                addToCartFromProductPage() {
-                    if (this.isAddingToCart) return;
-                    
-                    // Validate options
-                    if (this.selectedProduct?.sizes?.length && !this.selectedSize) {
-                        this.showToast('يرجى اختيار المقاس', 'error');
-                        return;
-                    }
-                    if (this.selectedProduct?.colors?.length && !this.selectedColor) {
-                        this.showToast('يرجى اختيار اللون', 'error');
-                        return;
-                    }
-                    
-                    this.isAddingToCart = true;
-                    this.addToCart(this.selectedProduct, this.productQuantity);
-                    
-                    setTimeout(() => {
-                        this.isAddingToCart = false;
-                    }, 500);
-                },
-
-                buyNow() {
-                    if (this.isAddingToCart) return;
-                    
-                    // Validate options
-                    if (this.selectedProduct?.sizes?.length && !this.selectedSize) {
-                        this.showToast('يرجى اختيار المقاس', 'error');
-                        return;
-                    }
-                    if (this.selectedProduct?.colors?.length && !this.selectedColor) {
-                        this.showToast('يرجى اختيار اللون', 'error');
-                        return;
-                    }
-                    
-                    this.isAddingToCart = true;
-                    this.addToCart(this.selectedProduct, this.productQuantity);
-                    
-                    setTimeout(() => {
-                        this.isAddingToCart = false;
-                        this.navigateTo('checkout');
-                    }, 300);
-                },
-
-                updateCartQuantity(cartItemId, quantity) {
-                    if (quantity < 1) {
-                        this.confirmRemoveItem(this.cart.find(i => (i.cartItemId || i.id) === cartItemId));
-                        return;
-                    }
-                    const item = this.cart.find(i => (i.cartItemId || i.id) === cartItemId);
-                    if (item) item.quantity = quantity;
-                    this.saveCart();
-                },
-
-                confirmRemoveItem(item) {
-                    this.itemToRemove = item;
-                    const downsell = this.getDownsell(item.id);
-                    if (downsell) {
-                        this.downsellProduct = { ...downsell.product, discounted_price: downsell.discounted_price };
-                        this.showDownsellModal = true;
-                    } else {
-                        this.removeFromCart(item.cartItemId || item.id);
-                    }
-                },
-
-                removeFromCart(cartItemId) {
-                    this.cart = this.cart.filter(i => (i.cartItemId || i.id) !== cartItemId);
-                    this.saveCart();
-                    this.itemToRemove = null;
-                },
-
-                acceptDownsell() {
-                    if (this.downsellProduct) {
-                        this.addToCart(this.downsellProduct, 1, this.downsellProduct.discounted_price);
-                    }
-                    if (this.itemToRemove) {
-                        this.removeFromCart(this.itemToRemove.cartItemId || this.itemToRemove.id);
-                    }
-                    this.showDownsellModal = false;
-                    this.downsellProduct = null;
-                },
-
-                showExitIntentDownsell() {
-                    const cartProductIds = this.cart.map(i => i.id);
-                    const downsellRule = this.upsellRules.find(r => r.type === 'downsell' && cartProductIds.includes(r.trigger_product_id));
-                    if (downsellRule) {
-                        const product = this.products.find(p => p.id === downsellRule.suggested_product_id);
-                        if (product && !cartProductIds.includes(product.id)) {
-                            const discountedPrice = downsellRule.discount_percent ? product.price * (1 - downsellRule.discount_percent / 100) : product.price;
-                            this.downsellProduct = { ...product, discounted_price: discountedPrice };
-                            this.showDownsellModal = true;
-                        }
-                    }
-                },
-
-                get cartSubtotal() {
-                    return this.cart.reduce((sum, item) => sum + (item.applied_price || item.price) * item.quantity, 0);
-                },
-
-                get cartItemsCount() {
-                    return this.cart.reduce((sum, item) => sum + item.quantity, 0);
-                },
-
-                // ===== UPSELLS =====
-                getUpsells(productId) {
-                    if (!productId) return [];
-                    return this.upsellRules
-                        .filter(r => r.type === 'upsell' && r.trigger_product_id === productId)
-                        .map(r => {
-                            const product = this.products.find(p => p.id === r.suggested_product_id);
-                            if (!product) return null;
-                            const discountedPrice = r.discount_percent ? product.price * (1 - r.discount_percent / 100) : null;
-                            return { product, discounted_price: discountedPrice };
-                        })
-                        .filter(Boolean);
-                },
-
-                getCartUpsells() {
-                    const cartProductIds = this.cart.map(i => i.id);
-                    const suggestions = [];
-                    this.upsellRules
-                        .filter(r => r.type === 'upsell' && cartProductIds.includes(r.trigger_product_id))
-                        .forEach(r => {
-                            if (!cartProductIds.includes(r.suggested_product_id) && !suggestions.find(s => s.product.id === r.suggested_product_id)) {
-                                const product = this.products.find(p => p.id === r.suggested_product_id);
-                                if (product) {
-                                    const discountedPrice = r.discount_percent ? product.price * (1 - r.discount_percent / 100) : null;
-                                    suggestions.push({ product, discounted_price: discountedPrice });
-                                }
-                            }
-                        });
-                    return suggestions.slice(0, 4);
-                },
-
-                getDownsell(productId) {
-                    const rule = this.upsellRules.find(r => r.type === 'downsell' && r.trigger_product_id === productId);
-                    if (!rule) return null;
-                    const product = this.products.find(p => p.id === rule.suggested_product_id);
-                    if (!product) return null;
-                    const discountedPrice = rule.discount_percent ? product.price * (1 - rule.discount_percent / 100) : product.price;
-                    return { product, discounted_price: discountedPrice };
-                },
-
-                // ===== SHIPPING =====
-                updateShipping() {
-                    if (!this.checkoutForm.wilaya || !this.checkoutForm.delivery_type) {
-                        this.shippingCost = null;
-                        return;
-                    }
-                    const rate = this.shippingRates.find(r => r.wilaya_id === parseInt(this.checkoutForm.wilaya));
-                    if (rate) {
-                        this.shippingCost = this.checkoutForm.delivery_type === 'home' ? rate.home_price : rate.office_price;
-                    }
-                },
-
-                getShippingRate(type) {
-                    if (!this.checkoutForm.wilaya) return 'اختر الولاية أولاً';
-                    const rate = this.shippingRates.find(r => r.wilaya_id === parseInt(this.checkoutForm.wilaya));
-                    if (!rate) return '-';
-                    const price = type === 'home' ? rate.home_price : rate.office_price;
-                    const enabled = type === 'home' ? rate.home_enabled : rate.office_enabled;
-                    return enabled ? this.formatPrice(price) : 'غير متوفر';
-                },
-
-                isDeliveryTypeAvailable(type) {
-                    if (!this.checkoutForm.wilaya) return true;
-                    const rate = this.shippingRates.find(r => r.wilaya_id === parseInt(this.checkoutForm.wilaya));
-                    if (!rate) return false;
-                    return type === 'home' ? rate.home_enabled : rate.office_enabled;
-                },
-
-                // ===== CHECKOUT =====
-                validateCheckoutForm() {
-                    this.formErrors = {};
-                    if (!this.checkoutForm.full_name.trim()) this.formErrors.full_name = 'الاسم مطلوب';
-                    const phoneRegex = /^0[567]\d{8}$/;
-                    if (!phoneRegex.test(this.checkoutForm.phone)) this.formErrors.phone = 'رقم هاتف غير صحيح';
-                    if (!this.checkoutForm.wilaya) this.formErrors.wilaya = 'الولاية مطلوبة';
-                    if (!this.checkoutForm.delivery_type) this.formErrors.delivery_type = 'نوع التوصيل مطلوب';
-                    if (this.checkoutForm.delivery_type === 'home' && !this.checkoutForm.address.trim()) {
-                        this.formErrors.address = 'العنوان مطلوب للتوصيل المنزلي';
-                    }
-                    return Object.keys(this.formErrors).length === 0;
-                },
-
-                async submitOrder() {
-                    if (!this.validateCheckoutForm()) {
-                        this.showToast('يرجى تصحيح الأخطاء', 'error');
-                        return;
-                    }
-                    if (!window.turnstileToken) {
-                        this.showToast('يرجى إكمال التحقق', 'error');
-                        return;
-                    }
-
-                    this.isSubmitting = true;
-                    this.trackEvent('InitiateCheckout', { value: this.cartSubtotal + this.shippingCost, currency: 'DZD' });
-
-                    try {
-                        // Simulate API call
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                        
-                        const orderId = Math.floor(1000 + Math.random() * 9000);
-                        this.lastOrderId = orderId;
-                        this.cart = [];
-                        this.saveCart();
-                        this.checkoutForm = { full_name: '', phone: '', wilaya: '', commune: '', delivery_type: '', address: '', note: '' };
-                        this.shippingCost = null;
-                        this.currentPage = 'order-success';
-                        
-                        if (this.settings.purchase_event_trigger === 'confirmed') {
-                            this.trackEvent('Purchase', { order_id: orderId, value: this.cartSubtotal + this.shippingCost, currency: 'DZD' });
-                        }
-                    } catch (error) {
-                        this.showToast('حدث خطأ، يرجى المحاولة مرة أخرى', 'error');
-                    } finally {
-                        this.isSubmitting = false;
-                    }
-                },
-
-                // ===== REVIEWS =====
-                getProductReviews(productId) {
-                    return this.reviews.filter(r => r.product_id === productId && r.status === 'approved');
-                },
-
-                async submitReview() {
-                    if (!this.newReview.name.trim() || !this.newReview.comment.trim()) {
-                        this.showToast('يرجى ملء جميع الحقول', 'error');
-                        return;
-                    }
-                    this.reviews.push({
-                        id: Date.now(),
-                        product_id: this.selectedProduct.id,
-                        ...this.newReview,
-                        status: 'pending'
-                    });
-                    this.newReview = { name: '', rating: 5, comment: '' };
-                    this.showReviewForm = false;
-                    this.showToast('تم إرسال تقييمك وسيظهر بعد الموافقة', 'success');
-                },
-
-                // ===== ADMIN =====
-                adminLogin() {
-                    if (this.adminCredentials.email === 'admin@store.com' && this.adminCredentials.password === 'admin123') {
-                        this.isAdminLoggedIn = true;
-                        this.adminUser = { email: this.adminCredentials.email, role: 'admin' };
-                        this.currentPage = 'admin-dashboard';
-                        this.showToast('تم تسجيل الدخول بنجاح', 'success');
-                    } else {
-                        this.showToast('بيانات غير صحيحة', 'error');
-                    }
-                },
-
-                adminLogout() {
-                    this.isAdminLoggedIn = false;
-                    this.adminUser = null;
-                    this.navigateTo('home');
-                },
-
-                openProductForm(product = null) {
-                    this.editingProduct = product;
-                    this.productForm = product ? { 
-                        ...product,
-                        sizes: product.sizes ? [...product.sizes] : [],
-                        colors: product.colors ? [...product.colors] : [],
-                        images: product.images ? [...product.images] : []
-                    } : { 
-                        name: '', 
-                        category_id: this.categories[0]?.id, 
-                        price: '', 
-                        original_price: '', 
-                        description: '', 
-                        is_active: true,
-                        sizes: [],
-                        colors: [],
-                        images: []
-                    };
-                    this.newSizeInput = '';
-                    this.newColorInput = '';
-                    this.showProductForm = true;
-                },
-
-                editProduct(product) {
-                    this.openProductForm(product);
-                },
-
-                addSize() {
-                    if (this.newSizeInput.trim() && !this.productForm.sizes.includes(this.newSizeInput.trim())) {
-                        this.productForm.sizes.push(this.newSizeInput.trim());
-                        this.newSizeInput = '';
-                    }
-                },
-
-                addColor() {
-                    if (this.newColorInput.trim() && !this.productForm.colors.includes(this.newColorInput.trim())) {
-                        this.productForm.colors.push(this.newColorInput.trim());
-                        this.newColorInput = '';
-                    }
-                },
-
-                removeProductImage(index) {
-                    this.productForm.images.splice(index, 1);
-                },
-
-                async handleImageUpload(event) {
-                    const files = event.target.files;
-                    if (!files.length) return;
-                    
-                    // In production: Upload to server endpoint which proxies to Cloudflare Images
-                    // NEVER expose Cloudflare API token to browser
-                    
-                    for (let file of files) {
-                        // Demo: Use placeholder
-                        const placeholderUrl = URL.createObjectURL(file);
-                        this.productForm.images.push(placeholderUrl);
-                    }
-                    
-                    this.showToast('تم إضافة الصور (سيتم رفعها عند الحفظ)', 'success');
-                    event.target.value = '';
-                },
-
-                saveProduct() {
-                    if (this.editingProduct) {
-                        Object.assign(this.editingProduct, this.productForm);
-                        // Set main image from first in images array
-                        if (this.productForm.images.length) {
-                            this.editingProduct.image = this.productForm.images[0];
-                        }
-                    } else {
-                        const newProduct = { 
-                            id: Date.now(), 
-                            ...this.productForm, 
-                            image: this.productForm.images[0] || 'https://via.placeholder.com/400',
-                            rating: 0, 
-                            reviews_count: 0,
-                            slug: this.productForm.name.toLowerCase().replace(/\s+/g, '-')
-                        };
-                        this.products.push(newProduct);
-                    }
-                    this.showProductForm = false;
-                    this.filterProducts();
-                    this.showToast('تم حفظ المنتج', 'success');
-                },
-
-                toggleProductStatus(product) {
-                    product.is_active = !product.is_active;
-                    this.filterProducts();
-                },
-
-                saveShippingRate(rate) {
-                    this.showToast('تم حفظ سعر التوصيل', 'success');
-                },
-
-                exportShippingCSV() {
-                    const headers = ['كود الولاية', 'الولاية', 'سعر المكتب', 'مفعل', 'سعر المنزل', 'مفعل'];
-                    const rows = this.shippingRates.map(r => [
-                        this.getWilayaCode(r.wilaya_id), 
-                        this.getWilayaName(r.wilaya_id), 
-                        r.office_price, 
-                        r.office_enabled, 
-                        r.home_price, 
-                        r.home_enabled
-                    ]);
-                    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'shipping_rates_58_wilayas.csv';
-                    a.click();
-                },
-
-                // ===== HELPERS =====
-                formatPrice(price) {
-                    return new Intl.NumberFormat('ar-DZ', { style: 'decimal' }).format(price) + ' د.ج';
-                },
-
-                formatDate(date) {
-                    return new Date(date).toLocaleDateString('ar-DZ');
-                },
-
-                formatDateTime(date) {
-                    return new Date(date).toLocaleString('ar-DZ');
-                },
-
-                getWilayaName(id) {
-                    return this.wilayas.find(w => w.id === parseInt(id))?.name || '-';
-                },
-
-                getWilayaCode(id) {
-                    return this.wilayas.find(w => w.id === parseInt(id))?.code || '-';
-                },
-
-                getCategoryName(id) {
-                    return this.categories.find(c => c.id === id)?.name || '-';
-                },
-
-                getProductName(id) {
-                    return this.products.find(p => p.id === id)?.name || '-';
-                },
-
-                getStatusLabel(status) {
-                    return this.orderStatuses.find(s => s.value === status)?.label || status;
-                },
-
-                showToast(message, type = 'success') {
-                    const id = Date.now();
-                    this.toasts.push({ id, message, type });
-                    setTimeout(() => {
-                        this.toasts = this.toasts.filter(t => t.id !== id);
-                    }, 3000);
-                }
-            };
-        }
-    </script>
-</body>
-</html>
-
-
