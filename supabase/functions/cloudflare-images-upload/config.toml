@@ -1,0 +1,4 @@
+# Supabase Edge Function config
+# Disable platform-level JWT verification (can fail on some JWT algs / setups).
+# We verify manually inside the function via supabase.auth.getUser(token) + admin_roles check.
+verify_jwt = false
