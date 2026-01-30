@@ -54,8 +54,16 @@
         <!-- Sidebar -->
         <aside class="fixed right-0 top-0 h-full w-64 bg-gray-900 text-white z-50">
             <div class="p-4 border-b border-gray-700">
-                <h1 class="text-xl font-bold">لوحة التحكم</h1>
-                <p id="userRole" class="text-sm text-gray-400"></p>
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h1 class="text-xl font-bold">لوحة التحكم</h1>
+                        <p id="userRole" class="text-sm text-gray-400"></p>
+                    </div>
+                    <div class="text-[11px] text-gray-400 font-mono text-left leading-tight">
+                        <div>Build</div>
+                        <div id="buildMarkerAdmin">—</div>
+                    </div>
+                </div>
             </div>
             <nav class="p-4 space-y-2">
                 <button onclick="navigateAdmin('orders')" class="sidebar-link w-full text-right px-4 py-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">
@@ -685,43 +693,35 @@
                     
                     <div class="border-t pt-4">
                         <h3 class="font-bold mb-2">المنتجات</h3>
-                        <table class="w-full">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-right">المنتج</th>
-                                    <th class="px-3 py-2 text-right">الكمية</th>
-                                    <th class="px-3 py-2 text-right">السعر</th>
-                                    <th class="px-3 py-2 text-right">المجموع</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${order.order_items.map(item => {
-                                    const product = adminState.products.find(p => p.id === item.product_id);
-                                    return `
-                                        <tr>
-                                            <td class="px-3 py-2">${product?.name || item.product_id}</td>
-                                            <td class="px-3 py-2">${item.quantity}</td>
-                                            <td class="px-3 py-2">${formatPrice(item.price)}</td>
-                                            <td class="px-3 py-2">${formatPrice(item.price * item.quantity)}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                            <tfoot class="border-t">
-                                <tr>
-                                    <td colspan="3" class="px-3 py-2 text-left">المجموع الفرعي</td>
-                                    <td class="px-3 py-2">${formatPrice(order.subtotal)}</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="px-3 py-2 text-left">التوصيل</td>
-                                    <td class="px-3 py-2">${formatPrice(order.shipping)}</td>
-                                </tr>
-                                <tr class="font-bold">
-                                    <td colspan="3" class="px-3 py-2 text-left">الإجمالي</td>
-                                    <td class="px-3 py-2">${formatPrice(order.total)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <div class="space-y-3">
+                            ${order.order_items.map(item => {
+                                const product = adminState.products.find(p => p.id === item.product_id);
+                                const img = product?.images?.[0] || null;
+                                const options = [];
+                                if (item.selected_size) options.push(`المقاس: ${item.selected_size}`);
+                                if (item.selected_color) options.push(`اللون: ${item.selected_color}`);
+                                return `
+                                    <div class="flex gap-3 items-center bg-gray-50 rounded-xl p-3">
+                                        <img src="${getImageUrl(img, 'thumbnail')}" alt="${(product?.name || item.product_name || 'منتج')}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-semibold truncate">${product?.name || item.product_name || item.product_id}</div>
+                                            ${options.length ? `<div class="text-xs text-gray-500 mt-0.5">${options.join(' - ')}</div>` : ''}
+                                            <div class="text-xs text-gray-500 mt-0.5">الكمية: ${item.quantity}</div>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="text-sm font-bold">${formatPrice(item.price * item.quantity)}</div>
+                                            <div class="text-xs text-gray-500">${formatPrice(item.price)} / قطعة</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <div class="mt-4 border-t pt-3 text-sm">
+                            <div class="flex justify-between py-1"><span class="text-gray-600">المجموع الفرعي</span><span class="font-semibold">${formatPrice(order.subtotal)}</span></div>
+                            <div class="flex justify-between py-1"><span class="text-gray-600">التوصيل</span><span class="font-semibold">${formatPrice(order.shipping)}</span></div>
+                            <div class="flex justify-between py-2 mt-1 border-t font-bold"><span>الإجمالي</span><span>${formatPrice(order.total)}</span></div>
+                        </div>
                     </div>
                     
                     <div class="border-t pt-4 mt-4">
@@ -1779,6 +1779,12 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            // Build marker (deployment verification)
+            try {
+                const bm = document.getElementById('buildMarkerAdmin');
+                if (bm) bm.textContent = ENV.BUILD_VERSION || ENV.NEXT_PUBLIC_BUILD_VERSION || 'unknown';
+            } catch {}
+
             // Show a clear message early if config is missing
             ensureConfigOrShowError();
             checkAuth();
