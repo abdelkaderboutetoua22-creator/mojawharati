@@ -219,6 +219,27 @@
             ABANDONED_CART_MINUTES: 60
         };
 
+        // ========================================
+        // SPA DEEP-LINK FIX FOR HOSTS WITHOUT REWRITES
+        // (e.g., GitHub Pages). 404.html redirects to /?__redirect=<path>
+        // We restore the original path before initializing the router.
+        // ========================================
+        (function restoreDeepLink() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const red = params.get('__redirect');
+                if (!red) return;
+
+                // Build absolute URL from redirect target
+                const u = new URL(red, window.location.origin);
+
+                // Replace current URL (remove __redirect) without reloading
+                history.replaceState(null, '', u.pathname + u.search + u.hash);
+            } catch (e) {
+                // ignore
+            }
+        })();
+
         function ensureConfigOrShowError() {
             const missing = [];
             if (!CONFIG.SUPABASE_URL) missing.push('NEXT_PUBLIC_SUPABASE_URL');

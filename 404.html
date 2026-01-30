@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>إعادة التوجيه...</title>
+</head>
+<body>
+  <script>
+    // SPA fallback for hosts that don't support rewrites (e.g., GitHub Pages).
+    // Redirect to / with the original path encoded, then index.html restores it.
+    (function () {
+      try {
+        var l = window.location;
+        var target = l.pathname + l.search + l.hash;
+        // Avoid loops
+        if (l.pathname === '/' && l.search.indexOf('__redirect=') !== -1) return;
+        l.replace('/?__redirect=' + encodeURIComponent(target));
+      } catch (e) {
+        // Fallback: go home
+        window.location.href = '/';
+      }
+    })();
+  </script>
+</body>
+</html>
